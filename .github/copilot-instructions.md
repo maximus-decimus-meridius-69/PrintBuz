@@ -1,0 +1,12 @@
+- [x] Verify that the copilot-instructions.md file in the .github directory is created.
+- [x] Clarify Project Requirements: Next.js TypeScript app with customer and admin interfaces, CEER poster upload flow, AZURA coming soon, Supabase storage, Razorpay checkout, admin protection, and email confirmation.
+- [x] Scaffold the Project: Manual Next.js scaffold in the current workspace because the folder name contains capital letters and `create-next-app` rejects it as a package name.
+- [x] Customize the Project: Added customer home page, CEER poster upload form, Razorpay order creation and verification, Supabase upload flow, admin login page, admin order list with sorting, middleware protection, and SMTP confirmation email support.
+- [x] Install Required Extensions: No additional extensions were required by the project setup information.
+- [x] Compile the Project: Dependencies installed, lint passed, and production build passed.
+- [x] Create and Run Task: Added and started a VS Code `dev` task for `npm run dev`.
+- [ ] Launch the Project: Dev server is available on `http://localhost:3000`, but debugger launch was not started because user confirmation was not requested yet.
+- [x] Ensure Documentation is Complete: README and environment setup notes were added and updated.
+- Work through each checklist item systematically.
+- Keep communication concise and focused.
+- Follow development best practices.
