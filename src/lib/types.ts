@@ -12,17 +12,19 @@ export const AZURA_PRICE_MAP = {
 } as const;
 
 export const COURSE_OPTIONS = ["ISI", "EEP", "SIP"] as const;
+export const DEPARTMENT_OPTIONS = ["CSE", "CSC", "CSD", "CSE-AIML", "ECE", "EEE", "MECH", "CIVIL"] as const;
 export const YEAR_OPTIONS = ["1", "2", "3", "4"] as const;
 export const ORDER_EVENT_OPTIONS = ["ceer", "azura"] as const;
 
 export type CourseOption = (typeof COURSE_OPTIONS)[number];
+export type DepartmentOption = (typeof DEPARTMENT_OPTIONS)[number];
 export type YearOption = (typeof YEAR_OPTIONS)[number];
 export type OrderEvent = (typeof ORDER_EVENT_OPTIONS)[number];
 export type AzuraHeightOption = (typeof AZURA_SIZE_OPTIONS)[number];
 
 export type CeerPosterFormValues = {
   rollNumber: string;
-  department: string;
+  department: DepartmentOption | "";
   year: YearOption;
   course: CourseOption;
   email: string;

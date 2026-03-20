@@ -2,7 +2,14 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import clsx from "clsx";
-import { CEER_ORDER_AMOUNT, type CeerPosterFormValues, type CourseOption, type YearOption } from "@/lib/types";
+import {
+  CEER_ORDER_AMOUNT,
+  DEPARTMENT_OPTIONS,
+  type CeerPosterFormValues,
+  type CourseOption,
+  type DepartmentOption,
+  type YearOption,
+} from "@/lib/types";
 
 declare global {
   interface Window {
@@ -190,13 +197,24 @@ export function PosterUploadForm() {
         </label>
         <label className="space-y-2 text-sm text-stone-700">
           <span>Department</span>
-          <input
+          <select
             className="field"
             value={values.department}
-            onChange={(event) => setValues((current) => ({ ...current, department: event.target.value }))}
-            placeholder="CSE"
+            onChange={(event) =>
+              setValues((current) => ({
+                ...current,
+                department: event.target.value as DepartmentOption | "",
+              }))
+            }
             required
-          />
+          >
+            <option value="">Select department</option>
+            {DEPARTMENT_OPTIONS.map((department) => (
+              <option key={department} value={department}>
+                {department}
+              </option>
+            ))}
+          </select>
         </label>
         <label className="space-y-2 text-sm text-stone-700">
           <span>Year</span>
@@ -242,8 +260,15 @@ export function PosterUploadForm() {
           <span>Section</span>
           <input
             className="field"
+            maxLength={1}
             value={values.section}
-            onChange={(event) => setValues((current) => ({ ...current, section: event.target.value }))}
+            onChange={(event) =>
+              setValues((current) => ({
+                ...current,
+                section: event.target.value.replace(/[^A-Za-z]/g, "").slice(0, 1).toUpperCase(),
+              }))
+            }
+            pattern="[A-Za-z]"
             placeholder="A"
             required
           />

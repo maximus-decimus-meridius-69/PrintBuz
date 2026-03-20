@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { AZURA_SIZE_OPTIONS, COURSE_OPTIONS, YEAR_OPTIONS } from "@/lib/types";
+import { AZURA_SIZE_OPTIONS, COURSE_OPTIONS, DEPARTMENT_OPTIONS, YEAR_OPTIONS } from "@/lib/types";
 
 const googleDriveUrlSchema = z
   .string()
@@ -19,11 +19,11 @@ const googleDriveUrlSchema = z
 
 export const ceerPosterFormSchema = z.object({
   rollNumber: z.string().trim().min(3).max(30),
-  department: z.string().trim().min(2).max(80),
+  department: z.enum(DEPARTMENT_OPTIONS),
   year: z.enum(YEAR_OPTIONS),
   course: z.enum(COURSE_OPTIONS),
   email: z.string().trim().email(),
-  section: z.string().trim().min(1).max(30),
+  section: z.string().trim().regex(/^[A-Za-z]$/, "Section should be a single alphabet."),
 });
 
 export const azuraPosterFormSchema = z.object({
