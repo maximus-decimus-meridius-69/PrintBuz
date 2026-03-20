@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ActionPrintsLogo } from "@/components/logo";
 import { AdminOrderActions } from "@/components/admin-order-actions";
 import { getServerEnv } from "@/lib/env";
 import { createSupabaseAdminClient, createSupabaseServerClient } from "@/lib/supabase/server";
@@ -106,6 +107,9 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     <main className="mx-auto min-h-screen max-w-7xl px-6 py-8 md:px-10">
       <div className="mb-8 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
         <div>
+          <Link href="/" aria-label="Action Prints — home">
+            <ActionPrintsLogo className="mb-3 w-28" />
+          </Link>
           <p className="display-font text-xs uppercase tracking-[0.5em] text-amber-700">Admin interface</p>
           <h1 className="display-font mt-3 text-5xl text-stone-950">Poster orders</h1>
         </div>

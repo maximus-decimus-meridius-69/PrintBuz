@@ -13,7 +13,7 @@ const bodyFont = Newsreader({
 });
 
 export const metadata: Metadata = {
-  title: "Poster Desk",
+  title: "Action Prints",
   description: "CEER poster upload and order management portal.",
 };
 

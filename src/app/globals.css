@@ -66,3 +66,36 @@ a {
 .display-font {
   font-family: var(--font-display), sans-serif;
 }
+
+/* ── Logo ── */
+@keyframes logoFloat {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-10px); }
+}
+
+.logo-float {
+  animation: logoFloat 5s ease-in-out infinite;
+  filter: drop-shadow(0 28px 52px rgba(28, 25, 23, 0.22));
+}
+
+/* ── Section divider ── */
+.section-divider {
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(41, 37, 36, 0.12) 25%,
+    rgba(217, 119, 6, 0.22) 50%,
+    rgba(41, 37, 36, 0.12) 75%,
+    transparent
+  );
+}
+
+/* ── Branded nav wordmark ── */
+.wordmark {
+  font-family: var(--font-display), sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #1c1917;
+  text-decoration: none;
+}

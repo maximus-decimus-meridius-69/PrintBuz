@@ -1,34 +1,52 @@
 import Link from "next/link";
+import { ActionPrintsLogo } from "@/components/logo";
 
 export default function Home() {
   return (
-    <main className="relative overflow-hidden px-6 py-8 md:px-10 lg:px-16">
+    <main className="relative flex min-h-screen flex-col overflow-hidden px-6 py-10 md:px-10 lg:px-16">
       <div className="grain glass absolute inset-4 -z-10 rounded-[2.5rem] border border-white/40" />
 
-      <section className="mx-auto flex max-w-7xl flex-col gap-6 py-12">
-        <p className="display-font text-center text-xs uppercase tracking-[0.5em] text-amber-700">Poster Desk</p>
-        <h1 className="display-font text-center text-5xl leading-none text-stone-950 md:text-7xl">Choose a section</h1>
+      {/* Hero */}
+      <section className="mx-auto flex w-full max-w-7xl flex-col items-center gap-5 py-12 md:py-16">
+        <ActionPrintsLogo className="logo-float w-64 md:w-[22rem] lg:w-[26rem]" />
+        <p className="text-[0.62rem] uppercase tracking-[0.65em] text-stone-400">
+          Professional printing portal
+        </p>
       </section>
 
-      <section className="mx-auto mt-4 grid max-w-7xl gap-8 md:grid-cols-2">
+      {/* Divider */}
+      <div className="mx-auto w-full max-w-7xl">
+        <div className="section-divider" />
+      </div>
+
+      {/* Section cards */}
+      <section className="mx-auto mb-10 mt-10 grid w-full max-w-7xl gap-6 md:grid-cols-2">
         <Link
-          className="group rounded-4xl border border-stone-200 bg-white/85 p-4 shadow-[0_30px_100px_rgba(28,25,23,0.08)] transition hover:-translate-y-1 hover:shadow-[0_35px_110px_rgba(28,25,23,0.12)]"
+          className="group relative overflow-hidden rounded-[2rem] bg-stone-950 p-8 shadow-[0_20px_60px_rgba(28,25,23,0.18)] transition duration-300 hover:-translate-y-1.5 hover:shadow-[0_30px_80px_rgba(28,25,23,0.26)]"
           href="/azura"
         >
-          <div className="rounded-[1.7rem] bg-stone-950 p-8 text-stone-50">
-            <p className="display-font text-sm uppercase tracking-[0.4em] text-amber-300">AZURA</p>
-            <h2 className="display-font mt-4 text-4xl">Poster link submission</h2>
-            <p className="mt-8 text-sm text-amber-300 transition group-hover:translate-x-1">Open AZURA</p>
-          </div>
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(217,119,6,0.18),transparent_55%)]" />
+          <p className="display-font relative text-xs uppercase tracking-[0.5em] text-amber-400">AZURA</p>
+          <h2 className="display-font relative mt-5 text-3xl leading-snug text-stone-50 md:text-4xl">
+            Poster link<br />submission
+          </h2>
+          <p className="relative mt-10 text-xs tracking-wide text-amber-400/75 transition duration-300 group-hover:translate-x-2">
+            Open AZURA →
+          </p>
         </Link>
 
         <Link
-          className="group rounded-4xl border border-white/70 bg-white/85 p-8 shadow-[0_30px_100px_rgba(28,25,23,0.08)] backdrop-blur transition hover:-translate-y-1 hover:shadow-[0_35px_110px_rgba(28,25,23,0.12)]"
+          className="group relative overflow-hidden rounded-[2rem] border border-stone-200/70 bg-white/80 p-8 shadow-[0_20px_60px_rgba(28,25,23,0.07)] backdrop-blur transition duration-300 hover:-translate-y-1.5 hover:shadow-[0_30px_80px_rgba(28,25,23,0.13)]"
           href="/ceer"
         >
-          <p className="display-font text-sm uppercase tracking-[0.4em] text-amber-700">CEER</p>
-          <h2 className="display-font mt-4 text-4xl text-stone-950">Poster upload form</h2>
-          <p className="mt-8 text-sm text-amber-700 transition group-hover:translate-x-1">Open CEER</p>
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(217,119,6,0.08),transparent_55%)]" />
+          <p className="display-font relative text-xs uppercase tracking-[0.5em] text-amber-700">CEER</p>
+          <h2 className="display-font relative mt-5 text-3xl leading-snug text-stone-950 md:text-4xl">
+            Poster upload<br />form
+          </h2>
+          <p className="relative mt-10 text-xs tracking-wide text-amber-700/75 transition duration-300 group-hover:translate-x-2">
+            Open CEER →
+          </p>
         </Link>
       </section>
     </main>
