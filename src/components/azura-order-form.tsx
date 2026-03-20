@@ -2,7 +2,13 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import clsx from "clsx";
-import { CEER_ORDER_AMOUNT, type CeerPosterFormValues, type CourseOption, type YearOption } from "@/lib/types";
+import {
+  AZURA_POSTER_WIDTH,
+  AZURA_PRICE_MAP,
+  AZURA_SIZE_OPTIONS,
+  type AzuraHeightOption,
+  type AzuraPosterFormValues,
+} from "@/lib/types";
 
 declare global {
   interface Window {
@@ -12,13 +18,12 @@ declare global {
   }
 }
 
-const initialValues: CeerPosterFormValues = {
-  rollNumber: "",
-  department: "",
-  year: "1",
-  course: "ISI",
+const initialValues: AzuraPosterFormValues = {
+  name: "",
+  phone: "",
   email: "",
-  section: "",
+  height: 30,
+  gdriveUrl: "",
 };
 
 const loadRazorpayScript = async () => {
@@ -58,34 +63,23 @@ type VerifyPaymentSuccess = {
   emailSent: boolean;
 };
 
-export function PosterUploadForm() {
-  const [values, setValues] = useState<CeerPosterFormValues>(initialValues);
-  const [posterFile, setPosterFile] = useState<File | null>(null);
+export function AzuraOrderForm() {
+  const [values, setValues] = useState<AzuraPosterFormValues>(initialValues);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [status, setStatus] = useState<Status>({ kind: "idle", message: "" });
 
   const isReady = useMemo(
     () =>
       Boolean(
-        values.rollNumber &&
-          values.department &&
-          values.year &&
-          values.course &&
-          values.email &&
-          values.section &&
-          posterFile,
+        values.name && values.phone && values.email && values.height && values.gdriveUrl,
       ),
-    [posterFile, values],
+    [values],
   );
+
+  const selectedPrice = AZURA_PRICE_MAP[values.height];
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-
-    if (!posterFile) {
-      setStatus({ kind: "error", message: "Select a poster file before continuing." });
-      return;
-    }
-
     setIsSubmitting(true);
     setStatus({ kind: "idle", message: "" });
 
@@ -96,7 +90,7 @@ export function PosterUploadForm() {
         throw new Error("Razorpay checkout failed to load.");
       }
 
-      const orderResponse = await fetch("/api/create-order", {
+      const orderResponse = await fetch("/api/azura/create-order", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -117,26 +111,29 @@ export function PosterUploadForm() {
         key: createdOrder.keyId,
         amount: createdOrder.amount,
         currency: createdOrder.currency,
-        name: "CEER Poster Desk",
-        description: "Poster upload payment",
+        name: "Azura Poster Desk",
+        description: `Poster size ${AZURA_POSTER_WIDTH} x ${values.height}`,
         order_id: createdOrder.orderId,
         prefill: {
+          name: values.name,
           email: values.email,
+          contact: values.phone,
         },
         theme: {
           color: "#d97706",
         },
         handler: async (response: Record<string, string>) => {
-          const payload = new FormData();
-          payload.append("poster", posterFile);
-          payload.append("databaseOrderId", createdOrder.databaseOrderId);
-          payload.append("razorpayOrderId", response.razorpay_order_id);
-          payload.append("razorpayPaymentId", response.razorpay_payment_id);
-          payload.append("razorpaySignature", response.razorpay_signature);
-
-          const verifyResponse = await fetch("/api/payment/verify", {
+          const verifyResponse = await fetch("/api/azura/payment/verify", {
             method: "POST",
-            body: payload,
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              databaseOrderId: createdOrder.databaseOrderId,
+              razorpayOrderId: response.razorpay_order_id,
+              razorpayPaymentId: response.razorpay_payment_id,
+              razorpaySignature: response.razorpay_signature,
+            }),
           });
 
           const verifyPayload = (await verifyResponse.json()) as VerifyPaymentSuccess | { error: string };
@@ -151,11 +148,10 @@ export function PosterUploadForm() {
           setStatus({
             kind: "success",
             message: verifiedPayment.emailSent
-              ? "Payment completed. Your poster is stored and a confirmation email has been sent."
-              : "Payment completed. Your poster is stored. Email sending is not configured yet.",
+              ? "Payment completed. Your Azura order is confirmed and a confirmation email has been sent."
+              : "Payment completed. Your Azura order is confirmed. Email sending is not configured yet.",
           });
           setValues(initialValues);
-          setPosterFile(null);
         },
         modal: {
           ondismiss: () => {
@@ -179,53 +175,32 @@ export function PosterUploadForm() {
     <form className="space-y-5" onSubmit={handleSubmit}>
       <div className="grid gap-4 md:grid-cols-2">
         <label className="space-y-2 text-sm text-stone-700">
-          <span>Student roll number</span>
+          <span>Name</span>
           <input
             className="field"
-            value={values.rollNumber}
-            onChange={(event) => setValues((current) => ({ ...current, rollNumber: event.target.value }))}
-            placeholder="22BCE1001"
+            value={values.name}
+            onChange={(event) => setValues((current) => ({ ...current, name: event.target.value }))}
+            placeholder="Your full name"
             required
           />
         </label>
         <label className="space-y-2 text-sm text-stone-700">
-          <span>Department</span>
+          <span>Contact number</span>
           <input
             className="field"
-            value={values.department}
-            onChange={(event) => setValues((current) => ({ ...current, department: event.target.value }))}
-            placeholder="CSE"
+            inputMode="numeric"
+            maxLength={10}
+            pattern="[0-9]{10}"
+            value={values.phone}
+            onChange={(event) =>
+              setValues((current) => ({
+                ...current,
+                phone: event.target.value.replace(/\D/g, "").slice(0, 10),
+              }))
+            }
+            placeholder="9876543210"
             required
           />
-        </label>
-        <label className="space-y-2 text-sm text-stone-700">
-          <span>Year</span>
-          <select
-            className="field"
-            value={values.year}
-            onChange={(event) =>
-              setValues((current) => ({ ...current, year: event.target.value as YearOption }))
-            }
-          >
-            <option value="1">1</option>
-            <option value="2">2</option>
-            <option value="3">3</option>
-            <option value="4">4</option>
-          </select>
-        </label>
-        <label className="space-y-2 text-sm text-stone-700">
-          <span>Course</span>
-          <select
-            className="field"
-            value={values.course}
-            onChange={(event) =>
-              setValues((current) => ({ ...current, course: event.target.value as CourseOption }))
-            }
-          >
-            <option value="ISI">ISI</option>
-            <option value="EEP">EEP</option>
-            <option value="SIP">SIP</option>
-          </select>
         </label>
         <label className="space-y-2 text-sm text-stone-700 md:col-span-2">
           <span>Email</span>
@@ -234,38 +209,60 @@ export function PosterUploadForm() {
             type="email"
             value={values.email}
             onChange={(event) => setValues((current) => ({ ...current, email: event.target.value }))}
-            placeholder="student@example.com"
+            placeholder="you@example.com"
             required
           />
         </label>
+        <label className="space-y-2 text-sm text-stone-700">
+          <span>Poster width</span>
+          <input className="field bg-stone-100" readOnly value={AZURA_POSTER_WIDTH} />
+        </label>
+        <label className="space-y-2 text-sm text-stone-700">
+          <span>Poster height</span>
+          <select
+            className="field"
+            value={values.height}
+            onChange={(event) =>
+              setValues((current) => ({
+                ...current,
+                height: Number(event.target.value) as AzuraHeightOption,
+              }))
+            }
+          >
+            {AZURA_SIZE_OPTIONS.map((height) => (
+              <option key={height} value={height}>
+                {AZURA_POSTER_WIDTH} x {height} - Rs. {AZURA_PRICE_MAP[height]}
+              </option>
+            ))}
+          </select>
+        </label>
         <label className="space-y-2 text-sm text-stone-700 md:col-span-2">
-          <span>Section</span>
+          <span>Google Drive link</span>
           <input
             className="field"
-            value={values.section}
-            onChange={(event) => setValues((current) => ({ ...current, section: event.target.value }))}
-            placeholder="A"
+            type="url"
+            value={values.gdriveUrl}
+            onChange={(event) =>
+              setValues((current) => ({ ...current, gdriveUrl: event.target.value }))
+            }
+            placeholder="https://drive.google.com/file/d/..."
             required
           />
+          <p className="text-xs text-stone-500">Share a Google Drive view link with access enabled for the admin team.</p>
         </label>
       </div>
 
-      <label className="block rounded-3xl border border-dashed border-amber-300 bg-amber-50/80 p-5 text-sm text-stone-700">
-        <span className="mb-2 block font-medium text-stone-900">Poster upload</span>
-        <input
-          className="block w-full text-sm file:mr-4 file:rounded-full file:border-0 file:bg-amber-600 file:px-4 file:py-2 file:text-white"
-          type="file"
-          accept=".pdf,.png,.jpg,.jpeg"
-          onChange={(event) => setPosterFile(event.target.files?.[0] ?? null)}
-          required
-        />
-        <p className="mt-3 text-xs text-stone-500">Accepted formats: PDF, PNG, JPG, JPEG.</p>
-      </label>
+      <div className="rounded-3xl border border-amber-200 bg-amber-50/80 px-5 py-4 text-sm text-stone-700">
+        <p className="text-xs uppercase tracking-[0.25em] text-amber-700">Selected size</p>
+        <p className="mt-2 text-xl font-semibold text-stone-950">
+          {AZURA_POSTER_WIDTH} x {values.height} at Rs. {selectedPrice}
+        </p>
+      </div>
 
       <div className="flex flex-col gap-3 rounded-3xl bg-stone-950 px-5 py-4 text-sm text-stone-100 md:flex-row md:items-center md:justify-between">
         <div>
-          <p className="text-xs uppercase tracking-[0.25em] text-amber-300">Fixed price</p>
-          <p className="text-xl font-semibold">Rs. {CEER_ORDER_AMOUNT} per poster</p>
+          <p className="text-xs uppercase tracking-[0.25em] text-amber-300">Amount payable</p>
+          <p className="text-xl font-semibold">Rs. {selectedPrice}</p>
         </div>
         <button
           className={clsx(
@@ -277,7 +274,7 @@ export function PosterUploadForm() {
           type="submit"
           disabled={!isReady || isSubmitting}
         >
-          {isSubmitting ? "Processing..." : "Upload and pay"}
+          {isSubmitting ? "Processing..." : "Continue to payment"}
         </button>
       </div>
 

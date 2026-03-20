@@ -4,7 +4,7 @@ import { requireAdminUser } from "@/lib/admin-auth";
 import { sendDeletionAuditEmail } from "@/lib/email";
 import { getServerEnv } from "@/lib/env";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
-import type { PosterOrderDbRecord } from "@/lib/types";
+import type { CeerOrderDbRecord } from "@/lib/types";
 
 const deleteSchema = z.object({
   orderId: z.string().uuid(),
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Record not found" }, { status: 404 });
   }
 
-  const order = data as PosterOrderDbRecord;
+  const order = data as CeerOrderDbRecord;
   const serverEnv = getServerEnv();
 
   if (order.poster_path) {

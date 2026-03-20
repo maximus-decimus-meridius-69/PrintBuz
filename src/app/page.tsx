@@ -17,7 +17,7 @@ export default function Home() {
         >
           <div className="rounded-[1.7rem] bg-stone-950 p-8 text-stone-50">
             <p className="display-font text-sm uppercase tracking-[0.4em] text-amber-300">AZURA</p>
-            <h2 className="display-font mt-4 text-4xl">Available soon</h2>
+            <h2 className="display-font mt-4 text-4xl">Poster link submission</h2>
             <p className="mt-8 text-sm text-amber-300 transition group-hover:translate-x-1">Open AZURA</p>
           </div>
         </Link>

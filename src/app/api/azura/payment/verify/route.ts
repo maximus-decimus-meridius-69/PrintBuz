@@ -1,30 +1,16 @@
 import crypto from "node:crypto";
 import { NextResponse } from "next/server";
-import { sendCeerOrderConfirmationEmail } from "@/lib/email";
+import { sendAzuraOrderConfirmationEmail } from "@/lib/email";
 import { getServerEnv } from "@/lib/env";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
-import { CEER_ORDER_AMOUNT_PAISE, type CeerOrderDbRecord } from "@/lib/types";
-import { ceerPaymentVerifySchema } from "@/lib/validation";
-
-const createPosterFilePath = (email: string, fileName: string) => {
-  const safeName = fileName.replace(/[^a-zA-Z0-9.-]/g, "-");
-  return `${email.toLowerCase()}/${Date.now()}-${safeName}`;
-};
+import { AZURA_PRICE_MAP, type AzuraOrderDbRecord } from "@/lib/types";
+import { azuraPaymentVerifySchema } from "@/lib/validation";
 
 export async function POST(request: Request) {
   try {
     const serverEnv = getServerEnv();
-    const formData = await request.formData();
-    const poster = formData.get("poster");
-
-    if (!(poster instanceof File)) {
-      return NextResponse.json({ error: "Poster file is required." }, { status: 400 });
-    }
-
-    const rawData = Object.fromEntries(
-      Array.from(formData.entries()).filter(([key]) => key !== "poster"),
-    );
-    const parsed = ceerPaymentVerifySchema.safeParse(rawData);
+    const json = await request.json();
+    const parsed = azuraPaymentVerifySchema.safeParse(json);
 
     if (!parsed.success) {
       return NextResponse.json({ error: "Invalid payment verification payload." }, { status: 400 });
@@ -41,7 +27,7 @@ export async function POST(request: Request) {
 
     const supabase = createSupabaseAdminClient();
     const { data: storedOrder, error: orderError } = await supabase
-      .from("poster_orders")
+      .from("azura_orders")
       .select("*")
       .eq("id", parsed.data.databaseOrderId)
       .single();
@@ -50,13 +36,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Order not found." }, { status: 404 });
     }
 
-    const order = storedOrder as CeerOrderDbRecord;
+    const order = storedOrder as AzuraOrderDbRecord;
+    const expectedAmount = AZURA_PRICE_MAP[order.height] * 100;
 
     if (order.status !== "pending") {
       return NextResponse.json({ error: "Order is not pending." }, { status: 409 });
     }
 
-    if (order.amount !== CEER_ORDER_AMOUNT_PAISE) {
+    if (order.amount !== expectedAmount) {
       return NextResponse.json({ error: "Stored order amount mismatch." }, { status: 409 });
     }
 
@@ -64,31 +51,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Razorpay order mismatch." }, { status: 409 });
     }
 
-    const posterPath = createPosterFilePath(order.email, poster.name);
-    const fileBuffer = Buffer.from(await poster.arrayBuffer());
-
-    const { error: uploadError } = await supabase.storage
-      .from(serverEnv.bucketName)
-      .upload(posterPath, fileBuffer, {
-        cacheControl: "3600",
-        contentType: poster.type,
-        upsert: false,
-      });
-
-    if (uploadError) {
-      throw uploadError;
-    }
-
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from(serverEnv.bucketName).getPublicUrl(posterPath);
-
     const { error: updateError } = await supabase
-      .from("poster_orders")
+      .from("azura_orders")
       .update({
         status: "paid",
-        poster_path: posterPath,
-        poster_url: publicUrl,
         razorpay_order_id: parsed.data.razorpayOrderId,
         razorpay_payment_id: parsed.data.razorpayPaymentId,
         payment_verified_at: new Date().toISOString(),
@@ -99,23 +65,23 @@ export async function POST(request: Request) {
       throw updateError;
     }
 
-    const emailSent = await sendCeerOrderConfirmationEmail(
+    const emailSent = await sendAzuraOrderConfirmationEmail(
       {
-        rollNumber: order.roll_number,
-        department: order.department,
-        year: order.year,
-        course: order.course,
+        name: order.name,
+        phone: order.phone,
         email: order.email,
-        section: order.section,
+        height: order.height,
+        gdriveUrl: order.gdrive_url,
       },
-      parsed.data.databaseOrderId,
+      order.id,
+      order.amount,
     );
 
     return NextResponse.json({ success: true, emailSent });
   } catch (error) {
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : "Unable to verify payment.",
+        error: error instanceof Error ? error.message : "Unable to verify Azura payment.",
       },
       { status: 500 },
     );

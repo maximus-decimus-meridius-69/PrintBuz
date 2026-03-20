@@ -1,7 +1,7 @@
 import nodemailer from "nodemailer";
 import { getHasEmailConfig, getServerEnv } from "@/lib/env";
-import { ORDER_AMOUNT } from "@/lib/types";
-import type { PosterFormValues } from "@/lib/types";
+import { AZURA_POSTER_WIDTH, CEER_ORDER_AMOUNT } from "@/lib/types";
+import type { AzuraPosterFormValues, CeerPosterFormValues } from "@/lib/types";
 
 const createTransporter = () => {
   const serverEnv = getServerEnv();
@@ -20,8 +20,8 @@ const createTransporter = () => {
   };
 };
 
-export const sendOrderConfirmationEmail = async (
-  customer: PosterFormValues,
+export const sendCeerOrderConfirmationEmail = async (
+  customer: CeerPosterFormValues,
   orderId: string,
 ) => {
   if (!getHasEmailConfig()) {
@@ -39,12 +39,45 @@ export const sendOrderConfirmationEmail = async (
         <h2 style="margin-bottom: 12px;">Poster order confirmed</h2>
         <p>Your CEER poster upload and payment have been received successfully.</p>
         <p><strong>Order ID:</strong> ${orderId}</p>
-        <p><strong>Amount paid:</strong> Rs. ${ORDER_AMOUNT}</p>
+        <p><strong>Amount paid:</strong> Rs. ${CEER_ORDER_AMOUNT}</p>
         <p><strong>Roll number:</strong> ${customer.rollNumber}</p>
         <p><strong>Department:</strong> ${customer.department}</p>
         <p><strong>Year:</strong> ${customer.year}</p>
         <p><strong>Course:</strong> ${customer.course}</p>
         <p><strong>Section:</strong> ${customer.section}</p>
+        <p>You can keep this email as your confirmation receipt.</p>
+      </div>
+    `,
+  });
+
+  return true;
+};
+
+export const sendAzuraOrderConfirmationEmail = async (
+  customer: AzuraPosterFormValues,
+  orderId: string,
+  amount: number,
+) => {
+  if (!getHasEmailConfig()) {
+    return false;
+  }
+
+  const { serverEnv, transporter } = createTransporter();
+
+  await transporter.sendMail({
+    from: serverEnv.smtpFrom,
+    to: customer.email,
+    subject: "Azura poster order confirmed",
+    html: `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827;">
+        <h2 style="margin-bottom: 12px;">Poster order confirmed</h2>
+        <p>Your Azura poster order and payment have been received successfully.</p>
+        <p><strong>Order ID:</strong> ${orderId}</p>
+        <p><strong>Amount paid:</strong> Rs. ${amount / 100}</p>
+        <p><strong>Name:</strong> ${customer.name}</p>
+        <p><strong>Phone:</strong> ${customer.phone}</p>
+        <p><strong>Poster size:</strong> ${AZURA_POSTER_WIDTH} x ${customer.height}</p>
+        <p><strong>Google Drive link:</strong> <a href="${customer.gdriveUrl}">${customer.gdriveUrl}</a></p>
         <p>You can keep this email as your confirmation receipt.</p>
       </div>
     `,

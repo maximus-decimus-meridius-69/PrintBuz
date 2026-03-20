@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { createRazorpayClient } from "@/lib/razorpay";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { getServerEnv } from "@/lib/env";
-import { ORDER_AMOUNT_PAISE } from "@/lib/types";
-import { createOrderSchema } from "@/lib/validation";
+import { CEER_ORDER_AMOUNT_PAISE } from "@/lib/types";
+import { ceerCreateOrderSchema } from "@/lib/validation";
 
 const isMissingEventColumnError = (error: unknown) => {
   return Boolean(
@@ -20,7 +20,7 @@ export async function POST(request: Request) {
   try {
     const serverEnv = getServerEnv();
     const json = await request.json();
-    const parsed = createOrderSchema.safeParse(json);
+    const parsed = ceerCreateOrderSchema.safeParse(json);
 
     if (!parsed.success) {
       return NextResponse.json({ error: "Invalid form values." }, { status: 400 });
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
       course: parsed.data.course,
       email: parsed.data.email,
       section: parsed.data.section,
-      amount: ORDER_AMOUNT_PAISE,
+      amount: CEER_ORDER_AMOUNT_PAISE,
       status: "pending",
     };
 
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
 
     const razorpay = createRazorpayClient();
     const razorpayOrder = await razorpay.orders.create({
-      amount: ORDER_AMOUNT_PAISE,
+      amount: CEER_ORDER_AMOUNT_PAISE,
       currency: "INR",
       receipt: orderId.slice(0, 20),
       notes: {
