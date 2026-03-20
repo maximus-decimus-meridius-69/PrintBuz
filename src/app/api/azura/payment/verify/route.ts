@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { sendAzuraOrderConfirmationEmail } from "@/lib/email";
 import { getServerEnv } from "@/lib/env";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
-import { AZURA_PRICE_MAP, type AzuraOrderDbRecord } from "@/lib/types";
+import { AZURA_PRICE_MAP, getPlatformFee, type AzuraOrderDbRecord } from "@/lib/types";
 import { azuraPaymentVerifySchema } from "@/lib/validation";
 
 export async function POST(request: Request) {
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     }
 
     const order = storedOrder as AzuraOrderDbRecord;
-    const expectedAmount = AZURA_PRICE_MAP[order.height] * 100;
+    const expectedAmount = (AZURA_PRICE_MAP[order.height] + getPlatformFee(AZURA_PRICE_MAP[order.height])) * 100;
 
     if (order.status !== "pending") {
       return NextResponse.json({ error: "Order is not pending." }, { status: 409 });

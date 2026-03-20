@@ -6,6 +6,7 @@ import {
   AZURA_POSTER_WIDTH,
   AZURA_PRICE_MAP,
   AZURA_SIZE_OPTIONS,
+  getPlatformFee,
   type AzuraHeightOption,
   type AzuraPosterFormValues,
 } from "@/lib/types";
@@ -112,7 +113,7 @@ export function AzuraOrderForm() {
         key: createdOrder.keyId,
         amount: createdOrder.amount,
         currency: createdOrder.currency,
-        name: "Azura Poster Desk",
+        name: "Action Prints",
         description: `Poster size ${AZURA_POSTER_WIDTH} x ${values.height}`,
         order_id: createdOrder.orderId,
         prefill: {
@@ -273,9 +274,14 @@ export function AzuraOrderForm() {
         </div>
 
         <div className="flex flex-col gap-3 rounded-3xl bg-stone-950 px-5 py-4 text-sm text-stone-100 md:flex-row md:items-center md:justify-between">
-          <div>
+          <div className="space-y-1">
             <p className="text-xs uppercase tracking-[0.25em] text-amber-300">Amount payable</p>
-            <p className="text-xl font-semibold">Rs. {selectedPrice}</p>
+            <div className="flex items-baseline gap-3">
+              <p className="text-xl font-semibold">Rs. {selectedPrice + getPlatformFee(selectedPrice)}</p>
+              <p className="text-xs text-stone-400">
+                Rs. {selectedPrice} + Rs. {getPlatformFee(selectedPrice)} platform fee
+              </p>
+            </div>
           </div>
           <button
             className={clsx(

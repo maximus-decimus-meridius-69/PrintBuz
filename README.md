@@ -1,4 +1,4 @@
-# Poster Desk
+# Action Prints
 
 Next.js application with two customer sections:
 
@@ -41,7 +41,7 @@ SMTP_HOST=
 SMTP_PORT=587
 SMTP_USER=
 SMTP_PASS=
-SMTP_FROM=Poster Desk <noreply@example.com>
+SMTP_FROM=Action Prints <noreply@example.com>
 ```
 
 ## Supabase setup

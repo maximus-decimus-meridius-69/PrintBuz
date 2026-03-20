@@ -1,6 +1,10 @@
 export const CEER_ORDER_AMOUNT = 150;
 export const CEER_ORDER_AMOUNT_PAISE = CEER_ORDER_AMOUNT * 100;
 
+// Platform fee: ₹1 per ₹50 slab (₹1 for ≤50, ₹2 for ≤100, ₹3 for ≤150, ...)
+export const getPlatformFee = (amountInRupees: number): number =>
+  Math.ceil(amountInRupees / 50);
+
 export const AZURA_POSTER_WIDTH = 6;
 export const AZURA_SIZE_OPTIONS = [30, 35, 40, 45, 50] as const;
 export const AZURA_PRICE_MAP = {

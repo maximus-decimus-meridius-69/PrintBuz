@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerEnv } from "@/lib/env";
 import { createRazorpayClient } from "@/lib/razorpay";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
-import { AZURA_POSTER_WIDTH, AZURA_PRICE_MAP } from "@/lib/types";
+import { AZURA_POSTER_WIDTH, AZURA_PRICE_MAP, getPlatformFee } from "@/lib/types";
 import { azuraCreateOrderSchema } from "@/lib/validation";
 
 export async function POST(request: Request) {
@@ -16,7 +16,8 @@ export async function POST(request: Request) {
     }
 
     const orderId = crypto.randomUUID();
-    const amount = AZURA_PRICE_MAP[parsed.data.height] * 100;
+    const baseAmountRupees = AZURA_PRICE_MAP[parsed.data.height];
+    const amount = (baseAmountRupees + getPlatformFee(baseAmountRupees)) * 100;
     const supabase = createSupabaseAdminClient();
 
     const { error: insertError } = await supabase.from("azura_orders").insert({
@@ -40,6 +41,7 @@ export async function POST(request: Request) {
       amount,
       currency: "INR",
       receipt: orderId.slice(0, 20),
+      payment_capture: true,
       notes: {
         name: parsed.data.name,
         event: "azura",

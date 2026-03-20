@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createRazorpayClient } from "@/lib/razorpay";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { getServerEnv } from "@/lib/env";
-import { CEER_ORDER_AMOUNT_PAISE } from "@/lib/types";
+import { CEER_ORDER_AMOUNT, getPlatformFee } from "@/lib/types";
 import { ceerCreateOrderSchema } from "@/lib/validation";
 
 const isMissingEventColumnError = (error: unknown) => {
@@ -27,6 +27,7 @@ export async function POST(request: Request) {
     }
 
     const orderId = crypto.randomUUID();
+    const totalPaise = (CEER_ORDER_AMOUNT + getPlatformFee(CEER_ORDER_AMOUNT)) * 100;
     const supabase = createSupabaseAdminClient();
     const baseInsertPayload = {
       id: orderId,
@@ -36,7 +37,7 @@ export async function POST(request: Request) {
       course: parsed.data.course,
       email: parsed.data.email,
       section: parsed.data.section,
-      amount: CEER_ORDER_AMOUNT_PAISE,
+      amount: totalPaise,
       status: "pending",
     };
 
@@ -56,9 +57,10 @@ export async function POST(request: Request) {
 
     const razorpay = createRazorpayClient();
     const razorpayOrder = await razorpay.orders.create({
-      amount: CEER_ORDER_AMOUNT_PAISE,
+      amount: totalPaise,
       currency: "INR",
       receipt: orderId.slice(0, 20),
+      payment_capture: true,
       notes: {
         rollNumber: parsed.data.rollNumber,
       },

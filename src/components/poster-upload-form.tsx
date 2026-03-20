@@ -4,6 +4,7 @@ import { FormEvent, useMemo, useState } from "react";
 import clsx from "clsx";
 import {
   CEER_ORDER_AMOUNT,
+  getPlatformFee,
   DEPARTMENT_OPTIONS,
   type CeerPosterFormValues,
   type CourseOption,
@@ -124,7 +125,7 @@ export function PosterUploadForm() {
         key: createdOrder.keyId,
         amount: createdOrder.amount,
         currency: createdOrder.currency,
-        name: "CEER Poster Desk",
+        name: "Action Prints",
         description: "Poster upload payment",
         order_id: createdOrder.orderId,
         prefill: {
@@ -288,9 +289,14 @@ export function PosterUploadForm() {
       </label>
 
       <div className="flex flex-col gap-3 rounded-3xl bg-stone-950 px-5 py-4 text-sm text-stone-100 md:flex-row md:items-center md:justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-[0.25em] text-amber-300">Fixed price</p>
-          <p className="text-xl font-semibold">Rs. {CEER_ORDER_AMOUNT} per poster</p>
+        <div className="space-y-1">
+          <p className="text-xs uppercase tracking-[0.25em] text-amber-300">Amount payable</p>
+          <div className="flex items-baseline gap-3">
+            <p className="text-xl font-semibold">Rs. {CEER_ORDER_AMOUNT + getPlatformFee(CEER_ORDER_AMOUNT)}</p>
+            <p className="text-xs text-stone-400">
+              Rs. {CEER_ORDER_AMOUNT} + Rs. {getPlatformFee(CEER_ORDER_AMOUNT)} platform fee
+            </p>
+          </div>
         </div>
         <button
           className={clsx(
