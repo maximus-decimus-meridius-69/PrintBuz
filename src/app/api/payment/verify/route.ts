@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { sendCeerOrderConfirmationEmail } from "@/lib/email";
 import { getServerEnv } from "@/lib/env";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
-import { CEER_ORDER_AMOUNT, getPlatformFee, type CeerOrderDbRecord } from "@/lib/types";
+import { CEER_ORDER_AMOUNT, getPlatformFee, type CeerOrderDbRecord, type DepartmentOption, type CourseOption, type YearOption } from "@/lib/types";
 import { ceerPaymentVerifySchema } from "@/lib/validation";
 
 const createPosterFilePath = (email: string, fileName: string) => {
@@ -103,9 +103,9 @@ export async function POST(request: Request) {
     const emailSent = await sendCeerOrderConfirmationEmail(
       {
         rollNumber: order.roll_number,
-        department: order.department,
-        year: order.year,
-        course: order.course,
+        department: order.department as DepartmentOption,
+        year: order.year as YearOption,
+        course: order.course as CourseOption,
         email: order.email,
         section: order.section,
       },
