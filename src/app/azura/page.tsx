@@ -18,7 +18,7 @@ export default function AzuraPage() {
 
         <div className="rounded-[2rem] border border-white/70 bg-white/80 p-8 shadow-[0_20px_60px_rgba(28,25,23,0.08)] backdrop-blur">
           <div className="mb-6 space-y-3">
-            <h1 className="display-font text-4xl text-stone-950 md:text-5xl">Poster link submission</h1>
+            <h1 className="display-font text-5xl text-stone-950 md:text-7xl">AZURA</h1>
             <p className="max-w-3xl text-sm leading-7 text-stone-500">
               Width is fixed at 6. Choose the height, paste the Google Drive link for the poster file, and complete the payment.
             </p>

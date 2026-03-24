@@ -26,10 +26,7 @@ export default function Home() {
           href="/azura"
         >
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(217,119,6,0.18),transparent_55%)]" />
-          <p className="display-font relative text-xs uppercase tracking-[0.5em] text-amber-400">AZURA</p>
-          <h2 className="display-font relative mt-5 text-3xl leading-snug text-stone-50 md:text-4xl">
-            Poster link<br />submission
-          </h2>
+          <h2 className="display-font relative mt-2 text-5xl leading-none text-stone-50 md:text-6xl">AZURA</h2>
           <p className="relative mt-10 text-xs tracking-wide text-amber-400/75 transition duration-300 group-hover:translate-x-2">
             Open AZURA →
           </p>
@@ -40,10 +37,7 @@ export default function Home() {
           href="/ceer"
         >
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(217,119,6,0.08),transparent_55%)]" />
-          <p className="display-font relative text-xs uppercase tracking-[0.5em] text-amber-700">CEER</p>
-          <h2 className="display-font relative mt-5 text-3xl leading-snug text-stone-950 md:text-4xl">
-            Poster upload<br />form
-          </h2>
+          <h2 className="display-font relative mt-2 text-5xl leading-none text-stone-950 md:text-6xl">CEER</h2>
           <p className="relative mt-10 text-xs tracking-wide text-amber-700/75 transition duration-300 group-hover:translate-x-2">
             Open CEER →
           </p>
