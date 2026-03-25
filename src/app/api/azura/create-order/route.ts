@@ -2,8 +2,14 @@ import { NextResponse } from "next/server";
 import { getServerEnv } from "@/lib/env";
 import { createRazorpayClient } from "@/lib/razorpay";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
-import { AZURA_POSTER_WIDTH, AZURA_PRICE_MAP, getPlatformFee } from "@/lib/types";
+import { calculateAzuraOrderDetails, type AzuraPosterFormValues } from "@/lib/types";
 import { azuraCreateOrderSchema } from "@/lib/validation";
+
+type RazorpayOrderResponse = {
+  id: string;
+  amount: number;
+  currency: string;
+};
 
 export async function POST(request: Request) {
   try {
@@ -15,19 +21,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid Azura form values." }, { status: 400 });
     }
 
+    const formValues = parsed.data as AzuraPosterFormValues;
     const orderId = crypto.randomUUID();
-    const baseAmountRupees = AZURA_PRICE_MAP[parsed.data.height];
-    const amount = (baseAmountRupees + getPlatformFee(baseAmountRupees)) * 100;
+    const orderDetails = calculateAzuraOrderDetails(formValues);
+    const amount = orderDetails.totalAmount * 100;
     const supabase = createSupabaseAdminClient();
 
     const { error: insertError } = await supabase.from("azura_orders").insert({
       id: orderId,
-      name: parsed.data.name,
-      phone: parsed.data.phone,
-      email: parsed.data.email,
-      width: AZURA_POSTER_WIDTH,
-      height: parsed.data.height,
-      gdrive_url: parsed.data.gdriveUrl,
+      name: formValues.name,
+      phone: formValues.phone,
+      email: formValues.email,
+      order_category: formValues.orderCategory,
+      size_key: "sizeKey" in formValues ? formValues.sizeKey : null,
+      width: orderDetails.width,
+      height: orderDetails.height,
+      gdrive_url: formValues.gdriveUrl,
       amount,
       status: "pending",
     });
@@ -37,16 +46,17 @@ export async function POST(request: Request) {
     }
 
     const razorpay = createRazorpayClient();
-    const razorpayOrder = await razorpay.orders.create({
+    const razorpayOrder = (await razorpay.orders.create({
       amount,
       currency: "INR",
       receipt: orderId.slice(0, 20),
       payment_capture: true,
       notes: {
-        name: parsed.data.name,
+        name: formValues.name,
         event: "azura",
+        category: formValues.orderCategory,
       },
-    });
+    })) as RazorpayOrderResponse;
 
     const { error: updateError } = await supabase
       .from("azura_orders")

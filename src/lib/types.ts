@@ -1,19 +1,35 @@
 export const CEER_ORDER_AMOUNT = 150;
 export const CEER_ORDER_AMOUNT_PAISE = CEER_ORDER_AMOUNT * 100;
 
-// Platform fee: ₹1 per ₹50 slab (₹1 for ≤50, ₹2 for ≤100, ₹3 for ≤150, ...)
-export const getPlatformFee = (amountInRupees: number): number =>
-  Math.ceil(amountInRupees / 50);
+export const PLATFORM_FEE_RATE = 0.025;
 
-export const AZURA_POSTER_WIDTH = 6;
-export const AZURA_SIZE_OPTIONS = [30, 35, 40, 45, 50] as const;
-export const AZURA_PRICE_MAP = {
-  30: 2340,
-  35: 2730,
-  40: 3120,
-  45: 3510,
-  50: 3900,
+export const getPlatformFee = (amountInRupees: number): number =>
+  Math.round(amountInRupees * PLATFORM_FEE_RATE);
+
+export const AZURA_ORDER_CATEGORY_OPTIONS = ["dept-wise", "stall", "customised"] as const;
+
+export const AZURA_CATEGORY_LABELS = {
+  "dept-wise": "Dept Wise Posters",
+  stall: "Stall Posters",
+  customised: "Customised",
 } as const;
+
+export const AZURA_DEPT_WISE_POSTER_OPTIONS = [
+  { key: "6x30", width: 6, height: 30, price: 2340 },
+  { key: "6x35", width: 6, height: 35, price: 2730 },
+  { key: "6x40", width: 6, height: 40, price: 3120 },
+  { key: "6x45", width: 6, height: 45, price: 3510 },
+  { key: "6x50", width: 6, height: 50, price: 3900 },
+] as const;
+
+export const AZURA_STALL_POSTER_OPTIONS = [
+  { key: "2x3", width: 2, height: 3, price: 100 },
+  { key: "3x4", width: 3, height: 4, price: 200 },
+] as const;
+
+export const AZURA_CUSTOM_MIN_DIMENSION = 3;
+export const AZURA_CUSTOM_MIN_AREA = 100;
+export const AZURA_CUSTOM_PRICE_PER_SQ_FT = 13;
 
 export const COURSE_OPTIONS = ["ISI", "EEP", "SIP"] as const;
 export const DEPARTMENT_OPTIONS = ["CSE", "CSC", "CSD", "CSE-AIML", "ECE", "EEE", "MECH", "CIVIL"] as const;
@@ -24,7 +40,11 @@ export type CourseOption = (typeof COURSE_OPTIONS)[number];
 export type DepartmentOption = (typeof DEPARTMENT_OPTIONS)[number];
 export type YearOption = (typeof YEAR_OPTIONS)[number];
 export type OrderEvent = (typeof ORDER_EVENT_OPTIONS)[number];
-export type AzuraHeightOption = (typeof AZURA_SIZE_OPTIONS)[number];
+export type AzuraOrderCategory = (typeof AZURA_ORDER_CATEGORY_OPTIONS)[number];
+export type AzuraDeptWisePosterOption = (typeof AZURA_DEPT_WISE_POSTER_OPTIONS)[number];
+export type AzuraStallPosterOption = (typeof AZURA_STALL_POSTER_OPTIONS)[number];
+export type AzuraDeptWiseSizeKey = AzuraDeptWisePosterOption["key"];
+export type AzuraStallSizeKey = AzuraStallPosterOption["key"];
 
 export type CeerPosterFormValues = {
   rollNumber: string;
@@ -35,13 +55,38 @@ export type CeerPosterFormValues = {
   section: string;
 };
 
-export type AzuraPosterFormValues = {
+type AzuraContactFields = {
   name: string;
   phone: string;
   email: string;
-  height: AzuraHeightOption;
   gdriveUrl: string;
 };
+
+export type AzuraDeptWisePosterFormValues = AzuraContactFields & {
+  orderCategory: "dept-wise";
+  sizeKey: AzuraDeptWiseSizeKey;
+};
+
+export type AzuraStallPosterFormValues = AzuraContactFields & {
+  orderCategory: "stall";
+  sizeKey: AzuraStallSizeKey;
+};
+
+export type AzuraCustomPosterFormValues = AzuraContactFields & {
+  orderCategory: "customised";
+  width: number;
+  height: number;
+};
+
+export type AzuraPosterFormValues =
+  | AzuraDeptWisePosterFormValues
+  | AzuraStallPosterFormValues
+  | AzuraCustomPosterFormValues;
+
+export type AzuraOrderPricingInput =
+  | Pick<AzuraDeptWisePosterFormValues, "orderCategory" | "sizeKey">
+  | Pick<AzuraStallPosterFormValues, "orderCategory" | "sizeKey">
+  | Pick<AzuraCustomPosterFormValues, "orderCategory" | "width" | "height">;
 
 export type OrderStatus = "pending" | "paid";
 
@@ -90,8 +135,10 @@ export type AzuraOrderDbRecord = {
   name: string;
   phone: string;
   email: string;
+  order_category: AzuraOrderCategory | null;
+  size_key: string | null;
   width: number;
-  height: AzuraHeightOption;
+  height: number;
   gdrive_url: string;
   amount: number;
   status: OrderStatus;
@@ -103,3 +150,159 @@ export type AzuraOrderDbRecord = {
 };
 
 export type SortKey = "created_at" | "year" | "department" | "course";
+
+export type AzuraOrderDetails = {
+  orderCategory: AzuraOrderCategory;
+  orderLabel: string;
+  width: number;
+  height: number;
+  sizeLabel: string;
+  area: number;
+  baseAmount: number;
+  platformFee: number;
+  totalAmount: number;
+};
+
+const azuraFixedPosterOptions = {
+  "dept-wise": AZURA_DEPT_WISE_POSTER_OPTIONS,
+  stall: AZURA_STALL_POSTER_OPTIONS,
+} as const;
+
+const formatNumericValue = (value: number) => {
+  if (Number.isInteger(value)) {
+    return String(value);
+  }
+
+  return value.toFixed(2).replace(/\.00$/, "").replace(/(\.\d*[1-9])0+$/, "$1");
+};
+
+export const formatPosterSize = (width: number, height: number) =>
+  `${formatNumericValue(width)} x ${formatNumericValue(height)}`;
+
+export const formatCurrencyAmount = (amount: number) =>
+  Number.isInteger(amount) ? amount.toString() : amount.toFixed(2);
+
+export const getAzuraCategoryLabel = (orderCategory: AzuraOrderCategory) =>
+  AZURA_CATEGORY_LABELS[orderCategory];
+
+export const getAzuraFixedPosterOption = (
+  orderCategory: "dept-wise" | "stall",
+  sizeKey: string,
+) => azuraFixedPosterOptions[orderCategory].find((option) => option.key === sizeKey);
+
+export const calculateAzuraOrderDetails = (
+  input: AzuraOrderPricingInput,
+): AzuraOrderDetails => {
+  if (input.orderCategory === "customised") {
+    const width = input.width;
+    const height = input.height;
+    const area = width * height;
+    const baseAmount = area * AZURA_CUSTOM_PRICE_PER_SQ_FT;
+    const platformFee = getPlatformFee(baseAmount);
+
+    return {
+      orderCategory: input.orderCategory,
+      orderLabel: getAzuraCategoryLabel(input.orderCategory),
+      width,
+      height,
+      sizeLabel: formatPosterSize(width, height),
+      area,
+      baseAmount,
+      platformFee,
+      totalAmount: baseAmount + platformFee,
+    };
+  }
+
+  const selectedOption = getAzuraFixedPosterOption(input.orderCategory, input.sizeKey);
+
+  if (!selectedOption) {
+    throw new Error("Invalid Azura poster size.");
+  }
+
+  const area = selectedOption.width * selectedOption.height;
+  const platformFee = getPlatformFee(selectedOption.price);
+
+  return {
+    orderCategory: input.orderCategory,
+    orderLabel: getAzuraCategoryLabel(input.orderCategory),
+    width: selectedOption.width,
+    height: selectedOption.height,
+    sizeLabel: formatPosterSize(selectedOption.width, selectedOption.height),
+    area,
+    baseAmount: selectedOption.price,
+    platformFee,
+    totalAmount: selectedOption.price + platformFee,
+  };
+};
+
+export const getAzuraPricingInputFromOrderRecord = (
+  order: Pick<AzuraOrderDbRecord, "order_category" | "size_key" | "width" | "height">,
+): AzuraOrderPricingInput => {
+  const orderCategory = order.order_category ?? "dept-wise";
+
+  if (orderCategory === "customised") {
+    return {
+      orderCategory,
+      width: Number(order.width),
+      height: Number(order.height),
+    };
+  }
+
+  if (orderCategory === "dept-wise") {
+    if (order.size_key) {
+      const matchedOptionByKey = AZURA_DEPT_WISE_POSTER_OPTIONS.find(
+        (option) => option.key === order.size_key,
+      );
+
+      if (!matchedOptionByKey) {
+        throw new Error("Unable to resolve Azura order size.");
+      }
+
+      return {
+        orderCategory,
+        sizeKey: matchedOptionByKey.key,
+      };
+    }
+
+    const matchedOption = AZURA_DEPT_WISE_POSTER_OPTIONS.find(
+      (option) => option.width === Number(order.width) && option.height === Number(order.height),
+    );
+
+    if (!matchedOption) {
+      throw new Error("Unable to resolve Azura order size.");
+    }
+
+    return {
+      orderCategory,
+      sizeKey: matchedOption.key,
+    };
+  }
+
+  if (order.size_key) {
+    const matchedOptionByKey = AZURA_STALL_POSTER_OPTIONS.find(
+      (option) => option.key === order.size_key,
+    );
+
+    if (!matchedOptionByKey) {
+      throw new Error("Unable to resolve Azura order size.");
+    }
+
+    return {
+      orderCategory,
+      sizeKey: matchedOptionByKey.key,
+    };
+  }
+
+  const matchedOption = AZURA_STALL_POSTER_OPTIONS.find(
+    (option) => option.width === Number(order.width) && option.height === Number(order.height),
+  );
+
+  if (!matchedOption) {
+    throw new Error("Unable to resolve Azura order size.");
+  }
+
+  return {
+    orderCategory,
+    sizeKey: matchedOption.key,
+  };
+};

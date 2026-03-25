@@ -11,6 +11,9 @@ export default function AdminLoginPage() {
         </Link>
         <p className="display-font text-xs uppercase tracking-[0.5em] text-amber-700">Admin</p>
         <h1 className="display-font text-5xl leading-none text-stone-950 md:text-6xl">Action Prints control room.</h1>
+        <p className="max-w-2xl text-sm leading-7 text-stone-500">
+          We ensure the best possible print quality. Even if the source is slightly blurry, we upscale and optimize it before printing.
+        </p>
         <Link className="text-sm text-stone-500 underline-offset-4 hover:underline" href="/">
           Back
         </Link>

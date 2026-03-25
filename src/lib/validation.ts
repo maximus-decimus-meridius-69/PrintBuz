@@ -1,5 +1,13 @@
 import { z } from "zod";
-import { AZURA_SIZE_OPTIONS, COURSE_OPTIONS, DEPARTMENT_OPTIONS, YEAR_OPTIONS } from "@/lib/types";
+import {
+  AZURA_CUSTOM_MIN_AREA,
+  AZURA_CUSTOM_MIN_DIMENSION,
+  AZURA_DEPT_WISE_POSTER_OPTIONS,
+  AZURA_STALL_POSTER_OPTIONS,
+  COURSE_OPTIONS,
+  DEPARTMENT_OPTIONS,
+  YEAR_OPTIONS,
+} from "@/lib/types";
 
 const googleDriveUrlSchema = z
   .string()
@@ -18,7 +26,12 @@ const googleDriveUrlSchema = z
   );
 
 export const ceerPosterFormSchema = z.object({
-  rollNumber: z.string().trim().min(3).max(30),
+  rollNumber: z
+    .string()
+    .trim()
+    .min(3)
+    .max(30)
+    .regex(/^[A-Z0-9]+$/, "Roll number must contain only uppercase letters and numbers."),
   department: z.enum(DEPARTMENT_OPTIONS),
   year: z.enum(YEAR_OPTIONS),
   course: z.enum(COURSE_OPTIONS),
@@ -26,16 +39,44 @@ export const ceerPosterFormSchema = z.object({
   section: z.string().trim().regex(/^[A-Za-z]$/, "Section should be a single alphabet."),
 });
 
-export const azuraPosterFormSchema = z.object({
+const azuraContactSchema = z.object({
   name: z.string().trim().min(2).max(120),
   phone: z.string().trim().regex(/^\d{10}$/, "Phone number must be 10 digits."),
   email: z.string().trim().email(),
-  height: z.coerce.number().refine(
-    (value): value is (typeof AZURA_SIZE_OPTIONS)[number] =>
-      AZURA_SIZE_OPTIONS.includes(value as (typeof AZURA_SIZE_OPTIONS)[number]),
-    "Invalid poster height.",
-  ),
   gdriveUrl: googleDriveUrlSchema,
+});
+
+const azuraPosterSchemaBase = z.discriminatedUnion("orderCategory", [
+  azuraContactSchema.extend({
+    orderCategory: z.literal("dept-wise"),
+    sizeKey: z.enum(AZURA_DEPT_WISE_POSTER_OPTIONS.map((option) => option.key) as [string, ...string[]]),
+  }),
+  azuraContactSchema.extend({
+    orderCategory: z.literal("stall"),
+    sizeKey: z.enum(AZURA_STALL_POSTER_OPTIONS.map((option) => option.key) as [string, ...string[]]),
+  }),
+  azuraContactSchema
+    .extend({
+      orderCategory: z.literal("customised"),
+      width: z.coerce
+        .number()
+        .int()
+        .min(AZURA_CUSTOM_MIN_DIMENSION, `Width must be at least ${AZURA_CUSTOM_MIN_DIMENSION} feet.`),
+      height: z.coerce
+        .number()
+        .int()
+        .min(AZURA_CUSTOM_MIN_DIMENSION, `Height must be at least ${AZURA_CUSTOM_MIN_DIMENSION} feet.`),
+    }),
+]);
+
+export const azuraPosterFormSchema = azuraPosterSchemaBase.superRefine((value, context) => {
+  if (value.orderCategory === "customised" && value.width * value.height < AZURA_CUSTOM_MIN_AREA) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: `Minimum order area is ${AZURA_CUSTOM_MIN_AREA} sq ft.`,
+      path: ["width"],
+    });
+  }
 });
 
 export const ceerCreateOrderSchema = ceerPosterFormSchema;

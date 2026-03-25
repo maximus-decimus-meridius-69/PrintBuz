@@ -36,8 +36,10 @@ create table if not exists public.azura_orders (
   name text not null,
   phone text not null,
   email text not null,
-  width integer not null default 6,
-  height integer not null,
+  order_category text not null default 'dept-wise',
+  size_key text,
+  width double precision not null default 6,
+  height double precision not null,
   gdrive_url text not null,
   amount integer not null,
   status text not null default 'pending',
@@ -47,6 +49,11 @@ create table if not exists public.azura_orders (
   payment_verified_at timestamptz,
   created_at timestamptz not null default now()
 );
+
+alter table public.azura_orders add column if not exists order_category text not null default 'dept-wise';
+alter table public.azura_orders add column if not exists size_key text;
+alter table public.azura_orders alter column width type double precision using width::double precision;
+alter table public.azura_orders alter column height type double precision using height::double precision;
 
 alter table public.poster_orders enable row level security;
 alter table public.azura_orders enable row level security;

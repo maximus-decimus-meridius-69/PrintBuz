@@ -191,9 +191,16 @@ export function PosterUploadForm() {
           <input
             className="field"
             value={values.rollNumber}
-            onChange={(event) => setValues((current) => ({ ...current, rollNumber: event.target.value }))}
+            onChange={(event) =>
+              setValues((current) => ({
+                ...current,
+                rollNumber: event.target.value.replace(/[^A-Za-z0-9]/g, "").toUpperCase(),
+              }))
+            }
+            pattern="[A-Z0-9]+"
             placeholder="22BCE1001"
             required
+            spellCheck={false}
           />
         </label>
         <label className="space-y-2 text-sm text-stone-700">

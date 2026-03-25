@@ -19,6 +19,9 @@ export default function CeerPage() {
         <div className="rounded-[2rem] border border-white/70 bg-white/80 p-8 shadow-[0_20px_60px_rgba(28,25,23,0.08)] backdrop-blur">
           <div className="mb-6 space-y-3">
             <h1 className="display-font text-4xl text-stone-950 md:text-5xl">Poster upload form</h1>
+            <p className="max-w-3xl text-sm leading-7 text-stone-500">
+              We ensure the best possible print quality. Even if the source is slightly blurry, we upscale and optimize it before printing.
+            </p>
           </div>
           <PosterUploadForm />
         </div>

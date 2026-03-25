@@ -20,7 +20,10 @@ export default function AzuraPage() {
           <div className="mb-6 space-y-3">
             <h1 className="display-font text-5xl text-stone-950 md:text-7xl">AZURA</h1>
             <p className="max-w-3xl text-sm leading-7 text-stone-500">
-              Width is fixed at 6. Choose the height, paste the Google Drive link for the poster file, and complete the payment.
+              Choose between Dept Wise Posters, Stall Posters, and Customised orders. Select the size you need, paste the Google Drive link for the poster file, and complete the payment.
+            </p>
+            <p className="max-w-3xl text-sm leading-7 text-stone-500">
+              We ensure the best possible print quality. Even if the source is slightly blurry, we upscale and optimize it before printing.
             </p>
           </div>
           <AzuraOrderForm />

@@ -3,11 +3,16 @@
 import { FormEvent, useMemo, useState } from "react";
 import clsx from "clsx";
 import {
-  AZURA_POSTER_WIDTH,
-  AZURA_PRICE_MAP,
-  AZURA_SIZE_OPTIONS,
-  getPlatformFee,
-  type AzuraHeightOption,
+  AZURA_CATEGORY_LABELS,
+  AZURA_CUSTOM_MIN_AREA,
+  AZURA_CUSTOM_MIN_DIMENSION,
+  AZURA_CUSTOM_PRICE_PER_SQ_FT,
+  AZURA_DEPT_WISE_POSTER_OPTIONS,
+  AZURA_ORDER_CATEGORY_OPTIONS,
+  AZURA_STALL_POSTER_OPTIONS,
+  calculateAzuraOrderDetails,
+  formatCurrencyAmount,
+  type AzuraOrderCategory,
   type AzuraPosterFormValues,
 } from "@/lib/types";
 
@@ -19,12 +24,54 @@ declare global {
   }
 }
 
-const initialValues: AzuraPosterFormValues = {
-  name: "",
-  phone: "",
-  email: "",
-  height: 30,
-  gdriveUrl: "",
+type Status = {
+  kind: "idle" | "error" | "success";
+  message: string;
+};
+
+type CreateOrderSuccess = {
+  orderId: string;
+  databaseOrderId: string;
+  amount: number;
+  currency: string;
+  keyId: string;
+};
+
+type VerifyPaymentSuccess = {
+  success: true;
+  emailSent: boolean;
+};
+
+const createInitialValues = (orderCategory: AzuraOrderCategory): AzuraPosterFormValues => {
+  const sharedValues = {
+    name: "",
+    phone: "",
+    email: "",
+    gdriveUrl: "",
+  };
+
+  if (orderCategory === "stall") {
+    return {
+      ...sharedValues,
+      orderCategory,
+      sizeKey: AZURA_STALL_POSTER_OPTIONS[0].key,
+    };
+  }
+
+  if (orderCategory === "customised") {
+    return {
+      ...sharedValues,
+      orderCategory,
+      width: AZURA_CUSTOM_MIN_DIMENSION,
+      height: AZURA_CUSTOM_MIN_DIMENSION,
+    };
+  }
+
+  return {
+    ...sharedValues,
+    orderCategory,
+    sizeKey: AZURA_DEPT_WISE_POSTER_OPTIONS[0].key,
+  };
 };
 
 const loadRazorpayScript = async () => {
@@ -46,42 +93,59 @@ const loadRazorpayScript = async () => {
   });
 };
 
-type Status = {
-  kind: "idle" | "error" | "success";
-  message: string;
-};
-
-type CreateOrderSuccess = {
-  orderId: string;
-  databaseOrderId: string;
-  amount: number;
-  currency: string;
-  keyId: string;
-};
-
-type VerifyPaymentSuccess = {
-  success: true;
-  emailSent: boolean;
-};
-
 export function AzuraOrderForm() {
-  const [values, setValues] = useState<AzuraPosterFormValues>(initialValues);
+  const [values, setValues] = useState<AzuraPosterFormValues>(createInitialValues("dept-wise"));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
   const [status, setStatus] = useState<Status>({ kind: "idle", message: "" });
 
+  const orderDetails = useMemo(() => calculateAzuraOrderDetails(values), [values]);
+  const isCustomAreaValid =
+    values.orderCategory !== "customised" || orderDetails.area >= AZURA_CUSTOM_MIN_AREA;
   const isReady = useMemo(
     () =>
       Boolean(
-        values.name && values.phone && values.email && values.height && values.gdriveUrl,
+        values.name &&
+          values.phone &&
+          values.email &&
+          values.gdriveUrl &&
+          isCustomAreaValid,
       ),
-    [values],
+    [isCustomAreaValid, values],
   );
 
-  const selectedPrice = AZURA_PRICE_MAP[values.height];
+  const handleCategoryChange = (nextCategory: AzuraOrderCategory) => {
+    setValues((current) => {
+      if (current.orderCategory === nextCategory) {
+        return current;
+      }
+
+      const nextValues = createInitialValues(nextCategory);
+
+      return {
+        ...nextValues,
+        name: current.name,
+        phone: current.phone,
+        email: current.email,
+        gdriveUrl: current.gdriveUrl,
+      };
+    });
+    setStatus({ kind: "idle", message: "" });
+  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
+    if (!isCustomAreaValid) {
+      setStatus({
+        kind: "error",
+        message: `Minimum area for customised posters is ${AZURA_CUSTOM_MIN_AREA} sq ft.`,
+      });
+      return;
+    }
+
+    const activeCategory = values.orderCategory;
+
     setIsSubmitting(true);
     setStatus({ kind: "idle", message: "" });
 
@@ -114,7 +178,7 @@ export function AzuraOrderForm() {
         amount: createdOrder.amount,
         currency: createdOrder.currency,
         name: "Action Prints",
-        description: `Poster size ${AZURA_POSTER_WIDTH} x ${values.height}`,
+        description: `${orderDetails.orderLabel} • ${orderDetails.sizeLabel}`,
         order_id: createdOrder.orderId,
         prefill: {
           name: values.name,
@@ -153,7 +217,7 @@ export function AzuraOrderForm() {
               ? "Payment completed. Your Azura order is confirmed and a confirmation email has been sent."
               : "Payment completed. Your Azura order is confirmed. Email sending is not configured yet.",
           });
-          setValues(initialValues);
+          setValues(createInitialValues(activeCategory));
         },
         modal: {
           ondismiss: () => {
@@ -175,6 +239,25 @@ export function AzuraOrderForm() {
 
   return (
     <>
+      <div className="mb-6 grid gap-3 md:grid-cols-3">
+        {AZURA_ORDER_CATEGORY_OPTIONS.map((orderCategory) => (
+          <button
+            key={orderCategory}
+            className={clsx(
+              "rounded-3xl border px-5 py-4 text-left transition",
+              values.orderCategory === orderCategory
+                ? "border-amber-300 bg-amber-50 text-stone-950 shadow-[0_20px_50px_rgba(217,119,6,0.12)]"
+                : "border-stone-200 bg-stone-50/70 text-stone-600 hover:border-stone-300 hover:bg-white",
+            )}
+            onClick={() => handleCategoryChange(orderCategory)}
+            type="button"
+          >
+            <p className="text-xs uppercase tracking-[0.25em] text-amber-700">Azura</p>
+            <p className="mt-2 text-lg font-semibold">{AZURA_CATEGORY_LABELS[orderCategory]}</p>
+          </button>
+        ))}
+      </div>
+
       <form className="space-y-5" onSubmit={handleSubmit}>
         <div className="flex items-center justify-between gap-3 rounded-3xl border border-stone-200 bg-stone-50/80 px-4 py-3 text-sm text-stone-700">
           <p>Need help generating the Google Drive link?</p>
@@ -188,101 +271,175 @@ export function AzuraOrderForm() {
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
-        <label className="space-y-2 text-sm text-stone-700">
-          <span>Name</span>
-          <input
-            className="field"
-            value={values.name}
-            onChange={(event) => setValues((current) => ({ ...current, name: event.target.value }))}
-            placeholder="Your full name"
-            required
-          />
-        </label>
-        <label className="space-y-2 text-sm text-stone-700">
-          <span>Contact number</span>
-          <input
-            className="field"
-            inputMode="numeric"
-            maxLength={10}
-            pattern="[0-9]{10}"
-            value={values.phone}
-            onChange={(event) =>
-              setValues((current) => ({
-                ...current,
-                phone: event.target.value.replace(/\D/g, "").slice(0, 10),
-              }))
-            }
-            placeholder="9876543210"
-            required
-          />
-        </label>
-        <label className="space-y-2 text-sm text-stone-700 md:col-span-2">
-          <span>Email</span>
-          <input
-            className="field"
-            type="email"
-            value={values.email}
-            onChange={(event) => setValues((current) => ({ ...current, email: event.target.value }))}
-            placeholder="you@example.com"
-            required
-          />
-        </label>
-        <label className="space-y-2 text-sm text-stone-700">
-          <span>Poster width</span>
-          <input className="field bg-stone-100" readOnly value={AZURA_POSTER_WIDTH} />
-        </label>
-        <label className="space-y-2 text-sm text-stone-700">
-          <span>Poster height</span>
-          <select
-            className="field"
-            value={values.height}
-            onChange={(event) =>
-              setValues((current) => ({
-                ...current,
-                height: Number(event.target.value) as AzuraHeightOption,
-              }))
-            }
-          >
-            {AZURA_SIZE_OPTIONS.map((height) => (
-              <option key={height} value={height}>
-                {AZURA_POSTER_WIDTH} x {height} - Rs. {AZURA_PRICE_MAP[height]}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="space-y-2 text-sm text-stone-700 md:col-span-2">
-          <span>Google Drive link</span>
-          <input
-            className="field"
-            type="url"
-            value={values.gdriveUrl}
-            onChange={(event) =>
-              setValues((current) => ({ ...current, gdriveUrl: event.target.value }))
-            }
-            placeholder="https://drive.google.com/file/d/..."
-            required
-          />
-          <p className="text-xs text-stone-500">Share a Google Drive view link with access enabled for the admin team.</p>
-        </label>
+          <label className="space-y-2 text-sm text-stone-700">
+            <span>Name</span>
+            <input
+              className="field"
+              value={values.name}
+              onChange={(event) => setValues((current) => ({ ...current, name: event.target.value }))}
+              placeholder="Your full name"
+              required
+            />
+          </label>
+
+          <label className="space-y-2 text-sm text-stone-700">
+            <span>Contact number</span>
+            <input
+              className="field"
+              inputMode="numeric"
+              maxLength={10}
+              pattern="[0-9]{10}"
+              value={values.phone}
+              onChange={(event) =>
+                setValues((current) => ({
+                  ...current,
+                  phone: event.target.value.replace(/\D/g, "").slice(0, 10),
+                }))
+              }
+              placeholder="9876543210"
+              required
+            />
+          </label>
+
+          <label className="space-y-2 text-sm text-stone-700 md:col-span-2">
+            <span>Email</span>
+            <input
+              className="field"
+              type="email"
+              value={values.email}
+              onChange={(event) => setValues((current) => ({ ...current, email: event.target.value }))}
+              placeholder="you@example.com"
+              required
+            />
+          </label>
+
+          {values.orderCategory === "customised" ? (
+            <>
+              <label className="space-y-2 text-sm text-stone-700">
+                <span>Poster width (ft)</span>
+                <input
+                  className="field"
+                  inputMode="numeric"
+                  min={AZURA_CUSTOM_MIN_DIMENSION}
+                  onChange={(event) =>
+                    setValues((current) =>
+                      current.orderCategory === "customised"
+                        ? {
+                            ...current,
+                            width: Number(event.target.value) || AZURA_CUSTOM_MIN_DIMENSION,
+                          }
+                        : current,
+                    )
+                  }
+                  required
+                  step={1}
+                  type="number"
+                  value={values.width}
+                />
+              </label>
+
+              <label className="space-y-2 text-sm text-stone-700">
+                <span>Poster height (ft)</span>
+                <input
+                  className="field"
+                  inputMode="numeric"
+                  min={AZURA_CUSTOM_MIN_DIMENSION}
+                  onChange={(event) =>
+                    setValues((current) =>
+                      current.orderCategory === "customised"
+                        ? {
+                            ...current,
+                            height: Number(event.target.value) || AZURA_CUSTOM_MIN_DIMENSION,
+                          }
+                        : current,
+                    )
+                  }
+                  required
+                  step={1}
+                  type="number"
+                  value={values.height}
+                />
+              </label>
+            </>
+          ) : (
+            <label className="space-y-2 text-sm text-stone-700 md:col-span-2">
+              <span>Poster size</span>
+              <select
+                className="field"
+                onChange={(event) =>
+                  setValues((current) =>
+                    current.orderCategory === "dept-wise"
+                      ? {
+                          ...current,
+                          sizeKey: event.target.value as (typeof AZURA_DEPT_WISE_POSTER_OPTIONS)[number]["key"],
+                        }
+                      : current.orderCategory === "stall"
+                        ? {
+                            ...current,
+                            sizeKey: event.target.value as (typeof AZURA_STALL_POSTER_OPTIONS)[number]["key"],
+                          }
+                        : current,
+                  )
+                }
+                value={values.sizeKey}
+              >
+                {(values.orderCategory === "dept-wise"
+                  ? AZURA_DEPT_WISE_POSTER_OPTIONS
+                  : AZURA_STALL_POSTER_OPTIONS
+                ).map((option) => (
+                  <option key={option.key} value={option.key}>
+                    {option.width} x {option.height} - Rs. {option.price}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+
+          <label className="space-y-2 text-sm text-stone-700 md:col-span-2">
+            <span>Google Drive link</span>
+            <input
+              className="field"
+              type="url"
+              value={values.gdriveUrl}
+              onChange={(event) =>
+                setValues((current) => ({ ...current, gdriveUrl: event.target.value }))
+              }
+              placeholder="https://drive.google.com/file/d/..."
+              required
+            />
+            <p className="text-xs text-stone-500">Share a Google Drive view link with access enabled for the admin team.</p>
+          </label>
         </div>
 
         <div className="rounded-3xl border border-amber-200 bg-amber-50/80 px-5 py-4 text-sm text-stone-700">
-          <p className="text-xs uppercase tracking-[0.25em] text-amber-700">Selected size</p>
+          <p className="text-xs uppercase tracking-[0.25em] text-amber-700">Selected order</p>
           <p className="mt-2 text-xl font-semibold text-stone-950">
-            {AZURA_POSTER_WIDTH} x {values.height} at Rs. {selectedPrice}
+            {orderDetails.orderLabel} • {orderDetails.sizeLabel}
           </p>
+          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-stone-500">
+            <span>Area: {orderDetails.area} sq ft</span>
+            {values.orderCategory === "customised" ? (
+              <span>Rate: Rs. {AZURA_CUSTOM_PRICE_PER_SQ_FT} per sq ft</span>
+            ) : null}
+          </div>
+          {values.orderCategory === "customised" && !isCustomAreaValid ? (
+            <p className="mt-3 rounded-2xl bg-rose-100 px-3 py-2 text-xs text-rose-700">
+              Minimum order area for customised posters is {AZURA_CUSTOM_MIN_AREA} sq ft.
+            </p>
+          ) : null}
         </div>
 
         <div className="flex flex-col gap-3 rounded-3xl bg-stone-950 px-5 py-4 text-sm text-stone-100 md:flex-row md:items-center md:justify-between">
           <div className="space-y-1">
             <p className="text-xs uppercase tracking-[0.25em] text-amber-300">Amount payable</p>
             <div className="flex items-baseline gap-3">
-              <p className="text-xl font-semibold">Rs. {selectedPrice + getPlatformFee(selectedPrice)}</p>
+              <p className="text-xl font-semibold">Rs. {formatCurrencyAmount(orderDetails.totalAmount)}</p>
               <p className="text-xs text-stone-400">
-                Rs. {selectedPrice} + Rs. {getPlatformFee(selectedPrice)} platform fee
+                Rs. {formatCurrencyAmount(orderDetails.baseAmount)} + Rs. {formatCurrencyAmount(orderDetails.platformFee)} platform fee
               </p>
             </div>
           </div>
+
           <button
             className={clsx(
               "rounded-full px-5 py-3 font-medium transition",

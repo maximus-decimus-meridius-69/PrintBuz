@@ -3,7 +3,12 @@ import { NextResponse } from "next/server";
 import { sendAzuraOrderConfirmationEmail } from "@/lib/email";
 import { getServerEnv } from "@/lib/env";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
-import { AZURA_PRICE_MAP, getPlatformFee, type AzuraOrderDbRecord } from "@/lib/types";
+import {
+  calculateAzuraOrderDetails,
+  getAzuraPricingInputFromOrderRecord,
+  type AzuraOrderDbRecord,
+  type AzuraPosterFormValues,
+} from "@/lib/types";
 import { azuraPaymentVerifySchema } from "@/lib/validation";
 
 export async function POST(request: Request) {
@@ -37,7 +42,9 @@ export async function POST(request: Request) {
     }
 
     const order = storedOrder as AzuraOrderDbRecord;
-    const expectedAmount = (AZURA_PRICE_MAP[order.height] + getPlatformFee(AZURA_PRICE_MAP[order.height])) * 100;
+    const pricingInput = getAzuraPricingInputFromOrderRecord(order);
+    const orderDetails = calculateAzuraOrderDetails(pricingInput);
+    const expectedAmount = orderDetails.totalAmount * 100;
 
     if (order.status !== "pending") {
       return NextResponse.json({ error: "Order is not pending." }, { status: 409 });
@@ -65,14 +72,40 @@ export async function POST(request: Request) {
       throw updateError;
     }
 
-    const emailSent = await sendAzuraOrderConfirmationEmail(
-      {
+    let emailPayload: AzuraPosterFormValues;
+
+    if (pricingInput.orderCategory === "customised") {
+      emailPayload = {
         name: order.name,
         phone: order.phone,
         email: order.email,
-        height: order.height,
         gdriveUrl: order.gdrive_url,
-      },
+        orderCategory: pricingInput.orderCategory,
+        width: orderDetails.width,
+        height: orderDetails.height,
+      };
+    } else if (pricingInput.orderCategory === "dept-wise") {
+      emailPayload = {
+        name: order.name,
+        phone: order.phone,
+        email: order.email,
+        gdriveUrl: order.gdrive_url,
+        orderCategory: pricingInput.orderCategory,
+        sizeKey: pricingInput.sizeKey,
+      };
+    } else {
+      emailPayload = {
+        name: order.name,
+        phone: order.phone,
+        email: order.email,
+        gdriveUrl: order.gdrive_url,
+        orderCategory: pricingInput.orderCategory,
+        sizeKey: pricingInput.sizeKey,
+      };
+    }
+
+    const emailSent = await sendAzuraOrderConfirmationEmail(
+      emailPayload,
       order.id,
       order.amount,
     );

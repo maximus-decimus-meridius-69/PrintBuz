@@ -1,6 +1,6 @@
 import nodemailer from "nodemailer";
 import { getHasEmailConfig, getServerEnv } from "@/lib/env";
-import { AZURA_POSTER_WIDTH, CEER_ORDER_AMOUNT } from "@/lib/types";
+import { calculateAzuraOrderDetails, CEER_ORDER_AMOUNT, formatCurrencyAmount } from "@/lib/types";
 import type { AzuraPosterFormValues, CeerPosterFormValues } from "@/lib/types";
 
 const createTransporter = () => {
@@ -63,6 +63,7 @@ export const sendAzuraOrderConfirmationEmail = async (
   }
 
   const { serverEnv, transporter } = createTransporter();
+  const orderDetails = calculateAzuraOrderDetails(customer);
 
   await transporter.sendMail({
     from: serverEnv.smtpFrom,
@@ -73,10 +74,13 @@ export const sendAzuraOrderConfirmationEmail = async (
         <h2 style="margin-bottom: 12px;">Poster order confirmed</h2>
         <p>Your Azura poster order and payment have been received successfully.</p>
         <p><strong>Order ID:</strong> ${orderId}</p>
-        <p><strong>Amount paid:</strong> Rs. ${amount / 100}</p>
+        <p><strong>Amount paid:</strong> Rs. ${formatCurrencyAmount(amount / 100)}</p>
         <p><strong>Name:</strong> ${customer.name}</p>
         <p><strong>Phone:</strong> ${customer.phone}</p>
-        <p><strong>Poster size:</strong> ${AZURA_POSTER_WIDTH} x ${customer.height}</p>
+        <p><strong>Poster category:</strong> ${orderDetails.orderLabel}</p>
+        <p><strong>Poster size:</strong> ${orderDetails.sizeLabel}</p>
+        <p><strong>Base cost:</strong> Rs. ${formatCurrencyAmount(orderDetails.baseAmount)}</p>
+        <p><strong>Platform fee:</strong> Rs. ${formatCurrencyAmount(orderDetails.platformFee)}</p>
         <p><strong>Google Drive link:</strong> <a href="${customer.gdriveUrl}">${customer.gdriveUrl}</a></p>
         <p>You can keep this email as your confirmation receipt.</p>
       </div>

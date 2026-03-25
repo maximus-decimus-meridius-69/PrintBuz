@@ -5,9 +5,15 @@ import { AdminOrderActions } from "@/components/admin-order-actions";
 import { getServerEnv } from "@/lib/env";
 import { createSupabaseAdminClient, createSupabaseServerClient } from "@/lib/supabase/server";
 import {
-  AZURA_POSTER_WIDTH,
+  AZURA_CATEGORY_LABELS,
+  AZURA_ORDER_CATEGORY_OPTIONS,
+  calculateAzuraOrderDetails,
   COURSE_OPTIONS,
+  formatCurrencyAmount,
+  formatPosterSize,
+  getAzuraPricingInputFromOrderRecord,
   YEAR_OPTIONS,
+  type AzuraOrderCategory,
   type AzuraOrderDbRecord,
   type CeerOrderDbRecord,
   type OrderEvent,
@@ -15,9 +21,10 @@ import {
 
 type AdminPageProps = {
   searchParams: Promise<{
-    event?: string;
+    azuraType?: string;
     course?: string;
     department?: string;
+    event?: string;
     section?: string;
     year?: string;
   }>;
@@ -27,6 +34,10 @@ export const dynamic = "force-dynamic";
 
 const normalizeFilter = (value?: string) => (value && value !== "all" ? value : "all");
 const normalizeEvent = (value?: string): OrderEvent => (value === "azura" ? "azura" : "ceer");
+const normalizeAzuraType = (value?: string): AzuraOrderCategory | "all" =>
+  value && AZURA_ORDER_CATEGORY_OPTIONS.includes(value as AzuraOrderCategory)
+    ? (value as AzuraOrderCategory)
+    : "all";
 
 export default async function AdminPage({ searchParams }: AdminPageProps) {
   const serverEnv = getServerEnv();
@@ -46,6 +57,9 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       <main className="mx-auto flex min-h-screen max-w-4xl flex-col justify-center px-6 py-16 text-center">
         <p className="display-font text-xs uppercase tracking-[0.5em] text-amber-700">Restricted</p>
         <h1 className="display-font mt-4 text-5xl text-stone-950">Access denied.</h1>
+        <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-stone-500">
+          We ensure the best possible print quality. Even if the source is slightly blurry, we upscale and optimize it before printing.
+        </p>
       </main>
     );
   }
@@ -56,6 +70,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   const currentDepartment = normalizeFilter(params.department);
   const currentSection = normalizeFilter(params.section);
   const currentYear = normalizeFilter(params.year);
+  const currentAzuraType = normalizeAzuraType(params.azuraType);
 
   const adminClient = createSupabaseAdminClient();
   const { data: ceerData, error: ceerError } = await adminClient
@@ -75,20 +90,28 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   })) as CeerOrderDbRecord[];
   const azuraOrders = ((azuraData ?? []) as Array<Partial<AzuraOrderDbRecord>>).map((order) => ({
     ...order,
+    order_category: order.order_category ?? "dept-wise",
+    size_key: order.size_key ?? null,
+    width: Number(order.width ?? 0),
+    height: Number(order.height ?? 0),
     print_done: order.print_done ?? false,
   })) as AzuraOrderDbRecord[];
+
   const departmentOptions = Array.from(new Set(allOrders.map((order) => order.department))).sort((left, right) =>
     left.localeCompare(right, undefined, { sensitivity: "base" }),
   );
+
   const sectionSourceOrders = allOrders.filter((order) => {
     const eventMatches = order.event === currentEvent;
     const courseMatches = currentCourse === "all" || order.course === currentCourse;
     const departmentMatches = currentDepartment === "all" || order.department === currentDepartment;
     return eventMatches && courseMatches && departmentMatches;
   });
+
   const sectionOptions = Array.from(new Set(sectionSourceOrders.map((order) => order.section))).sort((left, right) =>
     left.localeCompare(right, undefined, { sensitivity: "base" }),
   );
+
   const filteredOrders = allOrders.filter((order) => {
     const eventMatches = order.event === currentEvent;
     const courseMatches = currentCourse === "all" || order.course === currentCourse;
@@ -98,9 +121,40 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
     return eventMatches && courseMatches && departmentMatches && sectionMatches && yearMatches;
   });
+
   const orders = [...filteredOrders].sort(
     (left, right) => new Date(left.created_at).getTime() - new Date(right.created_at).getTime(),
   );
+
+  const filteredAzuraOrders = azuraOrders
+    .filter((order) => currentAzuraType === "all" || (order.order_category ?? "dept-wise") === currentAzuraType)
+    .map((order) => {
+      try {
+        const orderDetails = calculateAzuraOrderDetails(getAzuraPricingInputFromOrderRecord(order));
+
+        return {
+          ...order,
+          orderDetails,
+        };
+      } catch {
+        return {
+          ...order,
+          orderDetails: {
+            orderCategory: (order.order_category ?? "dept-wise") as AzuraOrderCategory,
+            orderLabel: AZURA_CATEGORY_LABELS[(order.order_category ?? "dept-wise") as AzuraOrderCategory],
+            width: Number(order.width),
+            height: Number(order.height),
+            sizeLabel: formatPosterSize(Number(order.width), Number(order.height)),
+            area: Number(order.width) * Number(order.height),
+            baseAmount: order.amount / 100,
+            platformFee: 0,
+            totalAmount: order.amount / 100,
+          },
+        };
+      }
+    })
+    .sort((left, right) => new Date(left.created_at).getTime() - new Date(right.created_at).getTime());
+
   const hasError = currentEvent === "ceer" ? ceerError : azuraError;
 
   return (
@@ -112,6 +166,9 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           </Link>
           <p className="display-font text-xs uppercase tracking-[0.5em] text-amber-700">Admin interface</p>
           <h1 className="display-font mt-3 text-5xl text-stone-950">Poster orders</h1>
+          <p className="mt-3 max-w-3xl text-sm leading-7 text-stone-500">
+            We ensure the best possible print quality. Even if the source is slightly blurry, we upscale and optimize it before printing.
+          </p>
         </div>
         <div className="flex flex-wrap gap-3">
           <form action="/api/admin/sign-out" method="post">
@@ -149,9 +206,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       </div>
 
       {hasError ? (
-        <div className="rounded-4xl bg-rose-100 px-5 py-4 text-rose-700">
-          Unable to load orders.
-        </div>
+        <div className="rounded-4xl bg-rose-100 px-5 py-4 text-rose-700">Unable to load orders.</div>
       ) : null}
 
       {currentEvent === "ceer" ? (
@@ -292,32 +347,64 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         </>
       ) : (
         <>
+          <div className="mb-6 flex flex-wrap gap-3">
+            <Link
+              className={`rounded-full px-4 py-2 text-sm font-medium ${
+                currentAzuraType === "all"
+                  ? "border border-amber-300 bg-amber-100 text-amber-900"
+                  : "border border-stone-300 bg-white text-stone-700"
+              }`}
+              href="/admin?event=azura"
+            >
+              All
+            </Link>
+            {AZURA_ORDER_CATEGORY_OPTIONS.map((orderCategory) => (
+              <Link
+                key={orderCategory}
+                className={`rounded-full px-4 py-2 text-sm font-medium ${
+                  currentAzuraType === orderCategory
+                    ? "border border-amber-300 bg-amber-100 text-amber-900"
+                    : "border border-stone-300 bg-white text-stone-700"
+                }`}
+                href={`/admin?event=azura&azuraType=${orderCategory}`}
+              >
+                {AZURA_CATEGORY_LABELS[orderCategory]}
+              </Link>
+            ))}
+          </div>
+
           <div className="mb-4 flex items-center justify-between px-1 text-sm text-stone-600">
-            <span>{azuraOrders.length} order{azuraOrders.length === 1 ? "" : "s"} shown</span>
-            <span>Azura orders</span>
+            <span>{filteredAzuraOrders.length} order{filteredAzuraOrders.length === 1 ? "" : "s"} shown</span>
+            <span>
+              Azura
+              {" · "}
+              {currentAzuraType === "all" ? "All sections" : AZURA_CATEGORY_LABELS[currentAzuraType]}
+            </span>
           </div>
 
           <div className="overflow-hidden rounded-4xl border border-stone-200 bg-white shadow-[0_20px_80px_rgba(28,25,23,0.08)]">
-            <div className="grid grid-cols-[0.7fr_1.1fr_1fr_1.2fr_0.9fr_0.8fr_0.9fr_0.9fr_1fr] gap-4 border-b border-stone-200 bg-stone-950 px-5 py-4 text-xs uppercase tracking-[0.2em] text-stone-300">
+            <div className="grid grid-cols-[0.6fr_1.1fr_1fr_1.2fr_1fr_1fr_0.9fr_0.9fr_0.9fr_1fr] gap-4 border-b border-stone-200 bg-stone-950 px-5 py-4 text-xs uppercase tracking-[0.2em] text-stone-300">
               <span>#</span>
               <span>Name</span>
               <span>Phone</span>
               <span>Email</span>
+              <span>Section</span>
               <span>Size</span>
               <span>Amount</span>
               <span>Link</span>
               <span>Printed</span>
               <span>Actions</span>
             </div>
-            {azuraOrders.length ? (
-              azuraOrders.map((order, index) => (
-                <div key={order.id} className="grid grid-cols-[0.7fr_1.1fr_1fr_1.2fr_0.9fr_0.8fr_0.9fr_0.9fr_1fr] gap-4 border-b border-stone-100 px-5 py-4 text-sm text-stone-700 last:border-b-0">
+            {filteredAzuraOrders.length ? (
+              filteredAzuraOrders.map((order, index) => (
+                <div key={order.id} className="grid grid-cols-[0.6fr_1.1fr_1fr_1.2fr_1fr_1fr_0.9fr_0.9fr_0.9fr_1fr] gap-4 border-b border-stone-100 px-5 py-4 text-sm text-stone-700 last:border-b-0">
                   <span>{index + 1}</span>
                   <span>{order.name}</span>
                   <span>{order.phone}</span>
                   <span className="truncate">{order.email}</span>
-                  <span>{AZURA_POSTER_WIDTH} x {order.height}</span>
-                  <span>Rs. {order.amount / 100}</span>
+                  <span>{order.orderDetails.orderLabel}</span>
+                  <span>{order.orderDetails.sizeLabel}</span>
+                  <span>Rs. {formatCurrencyAmount(order.amount / 100)}</span>
                   <span>
                     <a className="text-amber-700 underline-offset-4 hover:underline" href={order.gdrive_url} rel="noreferrer" target="_blank">
                       Open link

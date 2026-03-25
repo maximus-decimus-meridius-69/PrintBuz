@@ -12,6 +12,9 @@ export default function Home() {
         <p className="text-[0.62rem] uppercase tracking-[0.65em] text-stone-400">
           Professional printing portal
         </p>
+        <p className="max-w-3xl text-center text-sm leading-7 text-stone-500">
+          We ensure the best possible print quality. Even if the source is slightly blurry, we upscale and optimize it before printing.
+        </p>
       </section>
 
       {/* Divider */}
