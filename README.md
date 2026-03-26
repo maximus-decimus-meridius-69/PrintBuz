@@ -67,7 +67,7 @@ npm install
 npm run dev
 ```
 
-The project uses separate Next.js output directories for development and production builds so a running dev server is not corrupted by `npm run build`.
+Development uses a separate Next.js output directory so a running dev server is not corrupted by `npm run build`. Production builds use the default `.next` directory, which is required for Vercel deployments.
 
 ## Payment flow
 
