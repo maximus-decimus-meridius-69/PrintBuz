@@ -1,6 +1,6 @@
 import nodemailer from "nodemailer";
 import { getHasEmailConfig, getServerEnv } from "@/lib/env";
-import { calculateAzuraOrderDetails, CEER_ORDER_AMOUNT, formatCurrencyAmount } from "@/lib/types";
+import { calculateAzuraOrderDetails, CEER_ORDER_TOTAL_AMOUNT, formatCurrencyAmount } from "@/lib/types";
 import type { AzuraPosterFormValues, CeerPosterFormValues } from "@/lib/types";
 
 const createTransporter = () => {
@@ -39,7 +39,7 @@ export const sendCeerOrderConfirmationEmail = async (
         <h2 style="margin-bottom: 12px;">Poster order confirmed</h2>
         <p>Your CEER poster upload and payment have been received successfully.</p>
         <p><strong>Order ID:</strong> ${orderId}</p>
-        <p><strong>Amount paid:</strong> Rs. ${CEER_ORDER_AMOUNT}</p>
+        <p><strong>Amount paid:</strong> Rs. ${CEER_ORDER_TOTAL_AMOUNT}</p>
         <p><strong>Roll number:</strong> ${customer.rollNumber}</p>
         <p><strong>Department:</strong> ${customer.department}</p>
         <p><strong>Year:</strong> ${customer.year}</p>

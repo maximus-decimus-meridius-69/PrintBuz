@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { sendCeerOrderConfirmationEmail } from "@/lib/email";
 import { getServerEnv } from "@/lib/env";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
-import { CEER_ORDER_AMOUNT, getPlatformFee, type CeerOrderDbRecord, type DepartmentOption, type CourseOption, type YearOption } from "@/lib/types";
+import { CEER_ORDER_TOTAL_AMOUNT_PAISE, type CeerOrderDbRecord, type DepartmentOption, type CourseOption, type YearOption } from "@/lib/types";
 import { ceerPaymentVerifySchema } from "@/lib/validation";
 
 const createPosterFilePath = (email: string, fileName: string) => {
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Order is not pending." }, { status: 409 });
     }
 
-    const expectedAmount = (CEER_ORDER_AMOUNT + getPlatformFee(CEER_ORDER_AMOUNT)) * 100;
+    const expectedAmount = CEER_ORDER_TOTAL_AMOUNT_PAISE;
     if (order.amount !== expectedAmount) {
       return NextResponse.json({ error: "Stored order amount mismatch." }, { status: 409 });
     }

@@ -1,10 +1,13 @@
-export const CEER_ORDER_AMOUNT = 150;
+export const CEER_ORDER_AMOUNT = 122;
 export const CEER_ORDER_AMOUNT_PAISE = CEER_ORDER_AMOUNT * 100;
 
 export const PLATFORM_FEE_RATE = 0.025;
 
 export const getPlatformFee = (amountInRupees: number): number =>
   Math.round(amountInRupees * PLATFORM_FEE_RATE);
+
+export const CEER_ORDER_TOTAL_AMOUNT = CEER_ORDER_AMOUNT + getPlatformFee(CEER_ORDER_AMOUNT);
+export const CEER_ORDER_TOTAL_AMOUNT_PAISE = CEER_ORDER_TOTAL_AMOUNT * 100;
 
 export const AZURA_ORDER_CATEGORY_OPTIONS = ["dept-wise", "stall", "customised"] as const;
 
@@ -23,7 +26,7 @@ export const AZURA_DEPT_WISE_POSTER_OPTIONS = [
 ] as const;
 
 export const AZURA_STALL_POSTER_OPTIONS = [
-  { key: "2x3", width: 2, height: 3, price: 100 },
+  { key: "2x3", width: 2, height: 3, price: 122 },
   { key: "3x4", width: 3, height: 4, price: 200 },
 ] as const;
 
