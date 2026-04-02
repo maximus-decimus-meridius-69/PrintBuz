@@ -6,9 +6,23 @@ import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { CEER_ORDER_TOTAL_AMOUNT_PAISE, type CeerOrderDbRecord, type DepartmentOption, type CourseOption, type YearOption } from "@/lib/types";
 import { ceerPaymentVerifySchema } from "@/lib/validation";
 
-const createPosterFilePath = (email: string, fileName: string) => {
-  const safeName = fileName.replace(/[^a-zA-Z0-9.-]/g, "-");
-  return `${email.toLowerCase()}/${Date.now()}-${safeName}`;
+const isPdfFile = (file: File) =>
+  file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+
+const sanitizePathSegment = (value: string) =>
+  value
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9-]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+
+const createPosterFilePath = (orderId: string, order: Pick<CeerOrderDbRecord, "roll_number" | "department" | "section">) => {
+  const teamNumber = sanitizePathSegment(order.roll_number);
+  const branch = sanitizePathSegment(order.department);
+  const section = sanitizePathSegment(order.section);
+
+  return `${orderId}/${teamNumber}-${branch}-${section}.pdf`;
 };
 
 export async function POST(request: Request) {
@@ -19,6 +33,10 @@ export async function POST(request: Request) {
 
     if (!(poster instanceof File)) {
       return NextResponse.json({ error: "Poster file is required." }, { status: 400 });
+    }
+
+    if (!isPdfFile(poster)) {
+      return NextResponse.json({ error: "Only PDF files are accepted." }, { status: 400 });
     }
 
     const rawData = Object.fromEntries(
@@ -65,14 +83,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Razorpay order mismatch." }, { status: 409 });
     }
 
-    const posterPath = createPosterFilePath(order.email, poster.name);
+    const posterPath = createPosterFilePath(parsed.data.databaseOrderId, order);
     const fileBuffer = Buffer.from(await poster.arrayBuffer());
 
     const { error: uploadError } = await supabase.storage
       .from(serverEnv.bucketName)
       .upload(posterPath, fileBuffer, {
         cacheControl: "3600",
-        contentType: poster.type,
+        contentType: "application/pdf",
         upsert: false,
       });
 

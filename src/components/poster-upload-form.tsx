@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, useMemo, useState } from "react";
 import clsx from "clsx";
 import {
   CEER_ORDER_TOTAL_AMOUNT,
@@ -64,6 +64,9 @@ type VerifyPaymentSuccess = {
   success: true;
   emailSent: boolean;
 };
+
+const isPdfFile = (file: File) =>
+  file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
 
 export function PosterUploadForm() {
   const [values, setValues] = useState<CeerPosterFormValues>(initialValues);
@@ -182,6 +185,28 @@ export function PosterUploadForm() {
     }
   };
 
+  const handlePosterChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0] ?? null;
+
+    if (!selectedFile) {
+      setPosterFile(null);
+      return;
+    }
+
+    if (!isPdfFile(selectedFile)) {
+      event.target.value = "";
+      setPosterFile(null);
+      setStatus({
+        kind: "error",
+        message: "Only PDF files are accepted for CEER uploads.",
+      });
+      return;
+    }
+
+    setPosterFile(selectedFile);
+    setStatus((current) => (current.kind === "error" ? { kind: "idle", message: "" } : current));
+  };
+
   return (
     <form className="space-y-5" onSubmit={handleSubmit}>
       <div className="grid gap-4 md:grid-cols-2">
@@ -287,11 +312,14 @@ export function PosterUploadForm() {
         <input
           className="block w-full text-sm file:mr-4 file:rounded-full file:border-0 file:bg-amber-600 file:px-4 file:py-2 file:text-white"
           type="file"
-          accept=".pdf,.png,.jpg,.jpeg"
-          onChange={(event) => setPosterFile(event.target.files?.[0] ?? null)}
+          accept="application/pdf,.pdf"
+          onChange={handlePosterChange}
           required
         />
-        <p className="mt-3 text-xs text-stone-500">Accepted formats: PDF, PNG, JPG, JPEG.</p>
+        <p className="mt-3 text-xs text-stone-500">
+          Accepted format: PDF only. The uploaded file will be renamed using your team number, branch,
+          and section.
+        </p>
       </label>
 
       <div className="flex flex-col gap-3 rounded-3xl bg-stone-950 px-5 py-4 text-sm text-stone-100 md:flex-row md:items-center md:justify-between">
