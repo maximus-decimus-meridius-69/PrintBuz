@@ -3,9 +3,7 @@
 import { FormEvent, useMemo, useState } from "react";
 import clsx from "clsx";
 import {
-  CEER_ORDER_AMOUNT,
   CEER_ORDER_TOTAL_AMOUNT,
-  getPlatformFee,
   DEPARTMENT_OPTIONS,
   type CeerPosterFormValues,
   type CourseOption,
@@ -301,9 +299,6 @@ export function PosterUploadForm() {
           <p className="text-xs uppercase tracking-[0.25em] text-amber-300">Amount payable</p>
           <div className="flex items-baseline gap-3">
             <p className="text-xl font-semibold">Rs. {CEER_ORDER_TOTAL_AMOUNT}</p>
-            <p className="text-xs text-stone-400">
-              Rs. {CEER_ORDER_AMOUNT} + Rs. {getPlatformFee(CEER_ORDER_AMOUNT)} platform fee
-            </p>
           </div>
         </div>
         <button

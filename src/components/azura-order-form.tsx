@@ -434,9 +434,11 @@ export function AzuraOrderForm() {
             <p className="text-xs uppercase tracking-[0.25em] text-amber-300">Amount payable</p>
             <div className="flex items-baseline gap-3">
               <p className="text-xl font-semibold">Rs. {formatCurrencyAmount(orderDetails.totalAmount)}</p>
-              <p className="text-xs text-stone-400">
-                Rs. {formatCurrencyAmount(orderDetails.baseAmount)} + Rs. {formatCurrencyAmount(orderDetails.platformFee)} platform fee
-              </p>
+              {values.orderCategory !== "stall" ? (
+                <p className="text-xs text-stone-400">
+                  Rs. {formatCurrencyAmount(orderDetails.baseAmount)} + Rs. {formatCurrencyAmount(orderDetails.platformFee)} platform fee
+                </p>
+              ) : null}
             </div>
           </div>
 
